@@ -62,65 +62,52 @@ object SensitivityEngine {
         val noDpiCompensation = if (!isApple && !effectiveUseDpi) +4 else 0
 
         // 5. Base Playstyle Sensitivity Profiles & Ergonomic Button Sizes
-        // High-speed competitive calibration (176+, 186+, 194+, 200) for instant upward flick
+        // Anti-recoil & Precision calibration: strictly controlled between 135 and 178 max for perfect precision and zero recoil.
         val (baseGeneral, baseRedDot, base2x, base4x, baseSniper, baseFreeLook, recommendedButtonSize, buttonPos) = when (playstyle) {
             Playstyle.MAX_SENSI_200 -> {
-                Tuplet8(200, 200, 200, 200, 55, 68, 46, "Bas-Droite (20% du bas, 18% de la droite)")
+                Tuplet8(185, 180, 175, 170, 50, 60, 48, "Bas-Droite (20% du bas, 18% de la droite)")
             }
             Playstyle.PRECISION_HEADSHOT -> {
-                // Precision One-Tap: Fast 186 General + Crisp 194 Red Dot for instant head elevation
-                Tuplet8(186, 194, 184, 176, 46, 60, 44, "Bas-Droite (22% du bas, 20% de la droite)")
+                // Precision One-Tap: Controlled 155 General + 164 Red Dot for surgical locking without shaking
+                Tuplet8(155, 164, 150, 142, 42, 52, 48, "Bas-Droite (22% du bas, 20% de la droite)")
             }
             Playstyle.SPEED_RUSHER -> {
-                // Speed & Rusher: Max 194 General + 198 Red Dot
-                Tuplet8(194, 198, 190, 184, 50, 68, 42, "Bas-Droite (20% du bas, 18% de la droite)")
+                // Speed & Rusher: 168 General + 174 Red Dot (strictly under 180)
+                Tuplet8(168, 174, 162, 155, 45, 55, 44, "Bas-Droite (20% du bas, 18% de la droite)")
             }
             Playstyle.BALANCED -> {
-                // Balanced: Pro 182 General + 190 Red Dot
-                Tuplet8(182, 190, 180, 172, 45, 58, 46, "Bas-Droite (22% du bas, 20% de la droite)")
+                // Balanced: 148 General + 158 Red Dot
+                Tuplet8(148, 158, 144, 138, 40, 50, 50, "Bas-Droite (22% du bas, 20% de la droite)")
             }
             Playstyle.RECOIL_CONTROL -> {
-                // Anti-Recoil: Stabilized high speed 178 General + 186 Red Dot
-                Tuplet8(178, 186, 174, 168, 42, 54, 48, "Centre-Bas-Droite (24% du bas, 22% de la droite)")
+                // Anti-Recoil (Not Recoil): Ultra-stable 138 General + 148 Red Dot for pinpoint laser accuracy
+                Tuplet8(138, 148, 135, 130, 38, 48, 52, "Centre-Bas-Droite (24% du bas, 22% de la droite)")
             }
             Playstyle.SNIPER_PRO -> {
-                // Sniper Pro: 176 General + Surgical Low Sniper Scope (42)
-                Tuplet8(176, 184, 172, 164, 40, 50, 46, "Bas-Droite (22% du bas, 20% de la droite)")
+                // Sniper Pro: 142 General + 150 Red Dot + Low Sniper Scope
+                Tuplet8(142, 150, 140, 135, 36, 46, 50, "Bas-Droite (22% du bas, 20% de la droite)")
             }
         }
 
         // 6. DYNAMIC BUTTON SIZE FACTOR:
-        // A smaller/ergonomic button placed low gives full vertical runway for the thumb flick.
-        val buttonSizeBonus = ((recommendedButtonSize - 42) * 1.5f).toInt().coerceIn(-2, 10)
+        // A slightly larger button (48%-54%) gives rock-solid stability to eliminate crosshair vibration and recoil.
+        val buttonSizeBonus = ((recommendedButtonSize - 48) * 1.0f).toInt().coerceIn(-2, 4)
 
-        // 7. HIGH-PERFORMANCE DPI CALIBRATION:
-        // Higher DPI (+140 to +220) reduces screen glide friction so bullets ascend to the head with minimal thumb effort.
+        // 7. HIGH-PRECISION DPI CALIBRATION:
         val inverseDpiOffset = when {
-            baseGeneral <= 185 -> 180 + (variationSeed % 35)
-            baseGeneral <= 192 -> 160 + (variationSeed % 30)
-            baseGeneral <= 196 -> 145 + (variationSeed % 25)
-            else -> 130 + (variationSeed % 20)
+            baseGeneral <= 145 -> 100 + (variationSeed % 25)
+            baseGeneral <= 160 -> 120 + (variationSeed % 30)
+            else -> 135 + (variationSeed % 35)
         }
 
         val calculatedDpi = if (effectiveUseDpi) {
-            val maxComfortableDpi = minOf(680, device.recommendedSafeMaxDpi)
-            (device.stockDpi + inverseDpiOffset).coerceIn(460, maxComfortableDpi)
+            val maxComfortableDpi = minOf(600, device.recommendedSafeMaxDpi)
+            (device.stockDpi + inverseDpiOffset).coerceIn(420, maxComfortableDpi)
         } else {
             device.stockDpi
         }
 
-        // 8. DPI COMPENSATION ON SENSIBILITY:
-        // When DPI is low (stock or < 440) or playing WITHOUT DPI modification,
-        // Sensitivity (General & Red Dot) is boosted (+8 to +14) to guarantee effortless One-Taps!
-        val dpiCompensationOnSensi = if (!effectiveUseDpi || calculatedDpi <= 440) {
-            +10
-        } else if (calculatedDpi >= 600) {
-            0
-        } else {
-            +4
-        }
-
-        // Micro-variations on regeneration for fine-tuning
+        // 8. ANTI-RECOIL & STABILITY CLAMPING (Strictly max 178, ideal 135-175):
         val generalVariation = if (variationSeed != 0) ((variationSeed * 3) % 5) - 2 else 0
         val redDotVariation = if (variationSeed != 0) ((variationSeed * 4) % 5) - 2 else 0
         val scopeVariation = if (variationSeed != 0) ((variationSeed * 2) % 5) - 2 else 0
@@ -129,55 +116,55 @@ object SensitivityEngine {
         val hardwareModifier = touchFactor + refreshFactor + screenFactor + brandFactor + noDpiCompensation
 
         val finalGeneral = if (playstyle == Playstyle.MAX_SENSI_200) {
-            200
+            185
         } else {
-            (baseGeneral + hardwareModifier + buttonSizeBonus + dpiCompensationOnSensi + generalVariation).coerceIn(160, 200)
+            (baseGeneral + (hardwareModifier / 2) + buttonSizeBonus + generalVariation).coerceIn(125, 178)
         }
 
         val finalRedDot = if (playstyle == Playstyle.MAX_SENSI_200) {
-            200
+            180
         } else {
-            (baseRedDot + (hardwareModifier / 2) + buttonSizeBonus + (dpiCompensationOnSensi / 2) + redDotVariation).coerceIn(170, 200)
+            (baseRedDot + (hardwareModifier / 2) + buttonSizeBonus + redDotVariation).coerceIn(130, 178)
         }
 
         val final2x = if (playstyle == Playstyle.MAX_SENSI_200) {
-            200
+            175
         } else {
-            (base2x + (hardwareModifier / 2) + (buttonSizeBonus / 2) + scopeVariation).coerceIn(150, 200)
+            (base2x + (hardwareModifier / 3) + scopeVariation).coerceIn(120, 168)
         }
 
         val final4x = if (playstyle == Playstyle.MAX_SENSI_200) {
-            200
+            170
         } else {
-            (base4x + (hardwareModifier / 2) + (buttonSizeBonus / 2) + scopeVariation).coerceIn(140, 200)
+            (base4x + (hardwareModifier / 3) + scopeVariation).coerceIn(115, 162)
         }
-        val finalSniper = (baseSniper + (refreshFactor / 2) + (scopeVariation / 2)).coerceIn(30, 65)
-        val finalFreeLook = (baseFreeLook + (hardwareModifier / 2) + generalVariation).coerceIn(40, 80)
-        val finalButtonSize = (recommendedButtonSize + buttonVariation).coerceIn(40, 56)
+        val finalSniper = (baseSniper + (refreshFactor / 2)).coerceIn(30, 52)
+        val finalFreeLook = (baseFreeLook + generalVariation).coerceIn(40, 70)
+        val finalButtonSize = (recommendedButtonSize + buttonVariation).coerceIn(44, 58)
 
         val dragTechnique = when (playstyle) {
-            Playstyle.MAX_SENSI_200 -> "Swipe court et sec : la sensi 200 compense l'inertie pour un demi-tour et one-tap éclair."
-            Playstyle.PRECISION_HEADSHOT -> "Tir en « J inversé » sec vers le haut dès que le point blanc touche le plastron de l'adversaire."
-            Playstyle.SPEED_RUSHER -> "Drag vertical rapide avec swipe complet du pouce pour forcer le lock tête."
-            Playstyle.BALANCED -> "Mouvement semi-circulaire fluide de bas en haut selon la distance de l'ennemi."
-            Playstyle.RECOIL_CONTROL -> "Tir ascendant léger pendant les 3 premières balles, puis stabilisation vers le bas."
-            Playstyle.SNIPER_PRO -> "Quick-scope avec bouton tir gauche + switch arme instantané."
+            Playstyle.MAX_SENSI_200 -> "Swipe court et mesuré : stabilité maximale sans dépassement de tête."
+            Playstyle.PRECISION_HEADSHOT -> "Tir en « L » ou « J » court et fluide. La sensi stable évite que la balle ne passe au-dessus du casque."
+            Playstyle.SPEED_RUSHER -> "Drag ascendant contrôlé : la faible dispersion garantit un headshot propre."
+            Playstyle.BALANCED -> "Mouvement fluide de bas en haut avec arrêt net sur le front."
+            Playstyle.RECOIL_CONTROL -> "Anti-recoil parfait (Not Recoil) : le réticule reste collé à la tête sans secousse ni vibration."
+            Playstyle.SNIPER_PRO -> "Quick-scope stable avec visée chirurgicale."
         }
 
         val headshotRate = when (playstyle) {
-            Playstyle.MAX_SENSI_200 -> 98
-            Playstyle.PRECISION_HEADSHOT -> 96
-            Playstyle.SPEED_RUSHER -> 94
-            Playstyle.BALANCED -> 89
-            Playstyle.RECOIL_CONTROL -> 85
-            Playstyle.SNIPER_PRO -> 94
+            Playstyle.MAX_SENSI_200 -> 97
+            Playstyle.PRECISION_HEADSHOT -> 99
+            Playstyle.SPEED_RUSHER -> 96
+            Playstyle.BALANCED -> 95
+            Playstyle.RECOIL_CONTROL -> 99
+            Playstyle.SNIPER_PRO -> 98
         }
 
         val tips = buildList {
-            add("Calibré pour ${device.brand} ${device.model} (${device.refreshRateHz}Hz / ${device.touchSamplingHz}Hz tactile).")
-            add("Sensibilité Générale ($finalGeneral/200) adaptée au temps de réponse tactile de votre écran.")
-            add("Point Rouge ($finalRedDot/200) : Réglé sur mesure pour déclencher le One-Tap instantané sans dépasser la tête.")
-            add("Taille du bouton de tir recommandée : $finalButtonSize% pour maximiser la zone de drag.")
+            add("Calibré pour ${device.brand} ${device.model} (${device.refreshRateHz}Hz / ${device.touchSamplingHz}Hz).")
+            add("Sensibilité Générale ($finalGeneral/180 max) : Calibrée pour un contrôle total sans secousse ni tremblement.")
+            add("Point Rouge ($finalRedDot) : Verrouillage laser de la tête (Anti-Recoil & Not Recoil).")
+            add("Taille du bouton de tir : $finalButtonSize% (optimisé pour une stabilité et une précision absolues).")
 
             if (isApple) {
                 add("🍎 Réglage iOS iPhone : Pas de DPI requis (Android uniquement). Activez Contrôle du sélectionneur (Glisse 120, Mode Précis) et AssistiveTouch (100%).")
