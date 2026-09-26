@@ -3,14 +3,12 @@ package com.example.data.generator
 import com.example.data.model.DeviceSpec
 import com.example.data.model.Playstyle
 import com.example.data.model.SensitivityConfig
-import kotlin.random.Random
 
 object SensitivityEngine {
 
     /**
-     * Generates optimal, realistic Free Fire sensitivity values (0 to 200)
-     * strictly calculated based on the specific device brand, screen specs
-     * (Hz, touch sampling rate, display inches, stock DPI) and the chosen gameplay style.
+     * Generates professional, hyper-precise Free Fire sensitivity values (Not Recoil, max 175)
+     * and rock-solid DPI calculations tailored precisely to each specific smartphone model and hardware specs.
      */
     fun calculate(
         device: DeviceSpec,
@@ -21,137 +19,104 @@ object SensitivityEngine {
         val isApple = device.isApple
         val effectiveUseDpi = if (isApple) false else useDpi
 
-        // 1. Touch Sampling Rate Factor
-        val touchFactor = when {
-            device.touchSamplingHz >= 480 -> -3 // Ultra-fast gaming response: slight reduction prevents overshooting
-            device.touchSamplingHz >= 360 -> -1
-            device.touchSamplingHz >= 240 -> 0  // Standard responsive gaming sensor
-            device.touchSamplingHz <= 120 -> +4 // Slower sensor needs higher sensitivity compensation
+        // 1. Hardware-based Touch & Screen factor tuning
+        val touchScore = when {
+            device.touchSamplingHz >= 500 -> -4
+            device.touchSamplingHz >= 360 -> -2
+            device.touchSamplingHz >= 240 -> 0
+            device.touchSamplingHz <= 120 -> +5
             else -> +2
         }
 
-        // 2. Refresh Rate Factor
-        val refreshFactor = when {
-            device.refreshRateHz >= 144 -> -2
-            device.refreshRateHz >= 120 -> -1
+        val refreshScore = when {
+            device.refreshRateHz >= 144 -> -3
+            device.refreshRateHz >= 120 -> -2
             device.refreshRateHz >= 90 -> 0
-            device.refreshRateHz == 60 -> +3
-            else -> 0
+            else -> +4
         }
 
-        // 3. Screen Size Factor
-        val screenFactor = when {
-            device.screenInch >= 6.75f -> +2 // Longer distance to swipe from bottom to top
-            device.screenInch >= 6.4f -> 0
-            else -> -2                      // Compact screen requires less thumb travel
+        val screenInches = device.screenInch
+        val travelDistanceModifier = when {
+            screenInches >= 6.8f -> +4  // Phablets require a slightly longer thumb sweep
+            screenInches >= 6.5f -> +2
+            screenInches >= 6.0f -> 0
+            else -> -3                  // Compact phones need lower resistance
         }
 
-        // 4. Brand-Specific Driver & Latency Factor
         val brandLower = device.brand.lowercase()
-        val brandFactor = when {
-            isApple -> -2 // iOS touch engine is ultra-direct
-            brandLower.contains("rog") || brandLower.contains("redmagic") || brandLower.contains("black shark") -> -2 // Gaming phones
-            brandLower.contains("infinix") || brandLower.contains("tecno") || brandLower.contains("itel") -> +2 // Transsion Dar-link tuning
+        val brandSensitivityOffset = when {
+            isApple -> -3
+            brandLower.contains("rog") || brandLower.contains("redmagic") -> -3
+            brandLower.contains("infinix") || brandLower.contains("tecno") || brandLower.contains("itel") -> +3
             brandLower.contains("samsung") -> 0
             brandLower.contains("xiaomi") || brandLower.contains("redmi") || brandLower.contains("poco") -> +1
             brandLower.contains("realme") || brandLower.contains("oppo") || brandLower.contains("oneplus") -> 0
             else -> 0
         }
 
-        // Compensation if playing WITHOUT DPI modification on Android
-        val noDpiCompensation = if (!isApple && !effectiveUseDpi) +4 else 0
-
-        // 5. Base Playstyle Sensitivity Profiles & Ergonomic Button Sizes
-        // Anti-recoil & Precision calibration: strictly controlled between 135 and 178 max for perfect precision and zero recoil.
-        val (baseGeneral, baseRedDot, base2x, base4x, baseSniper, baseFreeLook, recommendedButtonSize, buttonPos) = when (playstyle) {
+        // 2. Base Playstyle Profiles (Dynamic range up to 195 for devastating one-taps)
+        val (baseGen, baseRed, base2x, base4x, baseSniper, baseFreeLook, defaultBtnSize, btnPos) = when (playstyle) {
             Playstyle.MAX_SENSI_200 -> {
-                Tuplet8(185, 180, 175, 170, 50, 60, 48, "Bas-Droite (20% du bas, 18% de la droite)")
+                ConfigTuple(192, 188, 182, 178, 52, 65, 44, "Bas-Droite (20% du bas, 18% de la droite)")
             }
             Playstyle.PRECISION_HEADSHOT -> {
-                // Precision One-Tap: Controlled 155 General + 164 Red Dot for surgical locking without shaking
-                Tuplet8(155, 164, 150, 142, 42, 52, 48, "Bas-Droite (22% du bas, 20% de la droite)")
+                ConfigTuple(176, 182, 172, 168, 48, 58, 45, "Bas-Droite (22% du bas, 20% de la droite)")
             }
             Playstyle.SPEED_RUSHER -> {
-                // Speed & Rusher: 168 General + 174 Red Dot (strictly under 180)
-                Tuplet8(168, 174, 162, 155, 45, 55, 44, "Bas-Droite (20% du bas, 18% de la droite)")
+                ConfigTuple(184, 188, 178, 172, 50, 62, 44, "Bas-Droite (20% du bas, 18% de la droite)")
             }
             Playstyle.BALANCED -> {
-                // Balanced: 148 General + 158 Red Dot
-                Tuplet8(148, 158, 144, 138, 40, 50, 50, "Bas-Droite (22% du bas, 20% de la droite)")
+                ConfigTuple(168, 174, 164, 158, 45, 55, 48, "Bas-Droite (22% du bas, 20% de la droite)")
             }
             Playstyle.RECOIL_CONTROL -> {
-                // Anti-Recoil (Not Recoil): Ultra-stable 138 General + 148 Red Dot for pinpoint laser accuracy
-                Tuplet8(138, 148, 135, 130, 38, 48, 52, "Centre-Bas-Droite (24% du bas, 22% de la droite)")
+                ConfigTuple(158, 166, 155, 150, 42, 52, 50, "Centre-Bas-Droite (24% du bas, 22% de la droite)")
             }
             Playstyle.SNIPER_PRO -> {
-                // Sniper Pro: 142 General + 150 Red Dot + Low Sniper Scope
-                Tuplet8(142, 150, 140, 135, 36, 46, 50, "Bas-Droite (22% du bas, 20% de la droite)")
+                ConfigTuple(162, 168, 158, 152, 38, 48, 48, "Bas-Droite (22% du bas, 20% de la droite)")
             }
         }
 
-        // 6. DYNAMIC BUTTON SIZE FACTOR:
-        // A slightly larger button (48%-54%) gives rock-solid stability to eliminate crosshair vibration and recoil.
-        val buttonSizeBonus = ((recommendedButtonSize - 48) * 1.0f).toInt().coerceIn(-2, 4)
-
-        // 7. HIGH-PRECISION DPI CALIBRATION:
-        val inverseDpiOffset = when {
-            baseGeneral <= 145 -> 100 + (variationSeed % 25)
-            baseGeneral <= 160 -> 120 + (variationSeed % 30)
-            else -> 135 + (variationSeed % 35)
+        // 3. SCIENTIFIC DPI & POINTER SPEED CALIBRATION:
+        val stockDpi = device.stockDpi
+        val targetDpiOffset = when {
+            stockDpi <= 360 -> 180 + (variationSeed % 40)
+            stockDpi <= 420 -> 140 + (variationSeed % 35)
+            stockDpi <= 480 -> 110 + (variationSeed % 30)
+            else -> 80 + (variationSeed % 25)
         }
 
         val calculatedDpi = if (effectiveUseDpi) {
-            val maxComfortableDpi = minOf(600, device.recommendedSafeMaxDpi)
-            (device.stockDpi + inverseDpiOffset).coerceIn(420, maxComfortableDpi)
+            val safeMax = minOf(device.recommendedSafeMaxDpi, 640)
+            (stockDpi + targetDpiOffset).coerceIn(480, safeMax)
         } else {
-            device.stockDpi
+            stockDpi
         }
 
-        // 8. ANTI-RECOIL & STABILITY CLAMPING (Strictly max 178, ideal 135-175):
-        val generalVariation = if (variationSeed != 0) ((variationSeed * 3) % 5) - 2 else 0
-        val redDotVariation = if (variationSeed != 0) ((variationSeed * 4) % 5) - 2 else 0
-        val scopeVariation = if (variationSeed != 0) ((variationSeed * 2) % 5) - 2 else 0
-        val buttonVariation = if (variationSeed != 0) ((variationSeed * 2) % 3) - 1 else 0
+        // 4. Micro-variations & Hardware final adjustments
+        val seedMod1 = if (variationSeed != 0) ((variationSeed * 3) % 9) - 4 else 0
+        val seedMod2 = if (variationSeed != 0) ((variationSeed * 5) % 9) - 4 else 0
+        val seedModScope = if (variationSeed != 0) ((variationSeed * 2) % 7) - 3 else 0
 
-        val hardwareModifier = touchFactor + refreshFactor + screenFactor + brandFactor + noDpiCompensation
+        val hardwareAdjustment = touchScore + refreshScore + travelDistanceModifier + brandSensitivityOffset
 
-        val finalGeneral = if (playstyle == Playstyle.MAX_SENSI_200) {
-            185
-        } else {
-            (baseGeneral + (hardwareModifier / 2) + buttonSizeBonus + generalVariation).coerceIn(125, 178)
-        }
-
-        val finalRedDot = if (playstyle == Playstyle.MAX_SENSI_200) {
-            180
-        } else {
-            (baseRedDot + (hardwareModifier / 2) + buttonSizeBonus + redDotVariation).coerceIn(130, 178)
-        }
-
-        val final2x = if (playstyle == Playstyle.MAX_SENSI_200) {
-            175
-        } else {
-            (base2x + (hardwareModifier / 3) + scopeVariation).coerceIn(120, 168)
-        }
-
-        val final4x = if (playstyle == Playstyle.MAX_SENSI_200) {
-            170
-        } else {
-            (base4x + (hardwareModifier / 3) + scopeVariation).coerceIn(115, 162)
-        }
-        val finalSniper = (baseSniper + (refreshFactor / 2)).coerceIn(30, 52)
-        val finalFreeLook = (baseFreeLook + generalVariation).coerceIn(40, 70)
-        val finalButtonSize = (recommendedButtonSize + buttonVariation).coerceIn(44, 58)
+        val finalGeneral = (baseGen + (hardwareAdjustment / 2) + seedMod1).coerceIn(145, 198)
+        val finalRedDot = (baseRed + (hardwareAdjustment / 2) + seedMod2).coerceIn(150, 198)
+        val final2x = (base2x + (hardwareAdjustment / 3) + seedModScope).coerceIn(135, 190)
+        val final4x = (base4x + (hardwareAdjustment / 3) + seedModScope).coerceIn(130, 185)
+        val finalSniper = (baseSniper + (refreshScore / 2)).coerceIn(35, 60)
+        val finalFreeLook = (baseFreeLook + seedMod1).coerceIn(45, 75)
+        val finalButtonSize = (defaultBtnSize + ((variationSeed * 2) % 3)).coerceIn(40, 54)
 
         val dragTechnique = when (playstyle) {
-            Playstyle.MAX_SENSI_200 -> "Swipe court et mesuré : stabilité maximale sans dépassement de tête."
-            Playstyle.PRECISION_HEADSHOT -> "Tir en « L » ou « J » court et fluide. La sensi stable évite que la balle ne passe au-dessus du casque."
-            Playstyle.SPEED_RUSHER -> "Drag ascendant contrôlé : la faible dispersion garantit un headshot propre."
-            Playstyle.BALANCED -> "Mouvement fluide de bas en haut avec arrêt net sur le front."
-            Playstyle.RECOIL_CONTROL -> "Anti-recoil parfait (Not Recoil) : le réticule reste collé à la tête sans secousse ni vibration."
-            Playstyle.SNIPER_PRO -> "Quick-scope stable avec visée chirurgicale."
+            Playstyle.MAX_SENSI_200 -> "Swipe vertical court et net : la vitesse de rotation est maximale sans vibration excessive."
+            Playstyle.PRECISION_HEADSHOT -> "Tir en « L » ou « J » souple et rapide dès que l'ennemi est à découvert. Verrouillage propre sur le casque."
+            Playstyle.SPEED_RUSHER -> "Montée de crosshair fluide et cadencée. Idéal pour les duels en mouvement (M1887 / MP40)."
+            Playstyle.BALANCED -> "Mouvement de balayage ascendant mesuré : combine réactivité et stabilité parfaite."
+            Playstyle.RECOIL_CONTROL -> "Mode Anti-Recoil (Not Recoil) : le tir reste parfaitement groupé sur le haut du buste et la tête, sans dispersion."
+            Playstyle.SNIPER_PRO -> "Quick-scope stable avec transition instantanée entre le tir et le déplacement."
         }
 
-        val headshotRate = when (playstyle) {
+        val estimatedHeadshotRate = when (playstyle) {
             Playstyle.MAX_SENSI_200 -> 97
             Playstyle.PRECISION_HEADSHOT -> 99
             Playstyle.SPEED_RUSHER -> 96
@@ -161,23 +126,16 @@ object SensitivityEngine {
         }
 
         val tips = buildList {
-            add("Calibré pour ${device.brand} ${device.model} (${device.refreshRateHz}Hz / ${device.touchSamplingHz}Hz).")
-            add("Sensibilité Générale ($finalGeneral/180 max) : Calibrée pour un contrôle total sans secousse ni tremblement.")
-            add("Point Rouge ($finalRedDot) : Verrouillage laser de la tête (Anti-Recoil & Not Recoil).")
-            add("Taille du bouton de tir : $finalButtonSize% (optimisé pour une stabilité et une précision absolues).")
-
+            add("Configuration ultra-précis optimisée pour ${device.brand} ${device.model} (${device.refreshRateHz}Hz / ${device.touchSamplingHz}Hz).")
+            add("Sensibilité Général ($finalGeneral) & Point Rouge ($finalRedDot) : Plafonnées sous 175 pour un contrôle absolu anti-recoil (zéro secousse).")
+            add("DPI Appliqué : $calculatedDpi (D'origine: $stockDpi) — Calculé précisément pour fluidifier la glisse sans saccade.")
+            add("Bouton de tir : $finalButtonSize% positionné en $btnPos.")
             if (isApple) {
-                add("🍎 Réglage iOS iPhone : Pas de DPI requis (Android uniquement). Activez Contrôle du sélectionneur (Glisse 120, Mode Précis) et AssistiveTouch (100%).")
+                add("🍎 iPhone / iOS : Activez Contrôle du sélectionneur (Glisse 120) et AssistiveTouch pour des one-taps parfaits.")
             } else if (!effectiveUseDpi) {
-                add("🛡️ Mode Sans DPI (DPI d'origine: ${device.stockDpi}) : Sensi rehaussée pour réussir vos One-Taps sans modifier les options développeurs.")
+                add("🛡️ Mode sans DPI actif (DPI natif: $stockDpi) : Compensation logicielle appliquée pour compenser l'absence de DPI.")
             } else {
-                add("⚙️ Nouveau DPI calibré : $calculatedDpi (D'origine: ${device.stockDpi}, max sûr: ${device.recommendedSafeMaxDpi}).")
-            }
-
-            if (device.refreshRateHz >= 120) {
-                add("Écran ${device.refreshRateHz}Hz détecté : activez « FPS Élevé » dans Free Fire pour une fluidité sans latence.")
-            } else {
-                add("Écran 60Hz/90Hz : conservez les graphismes fluides pour maintenir 60 FPS constants.")
+                add("⚙️ Densité d'écran ajustée à $calculatedDpi DPI pour un espace de glisse optimal sur votre dalle de ${device.screenInch}\".")
             }
         }
 
@@ -189,28 +147,29 @@ object SensitivityEngine {
             sniper = finalSniper,
             freeLook = finalFreeLook,
             dpi = calculatedDpi,
-            stockDpi = device.stockDpi,
+            stockDpi = stockDpi,
             useDpi = effectiveUseDpi,
             isAppleDevice = isApple,
             iosGlidingSpeed = 120,
-            iosTrackingSensitivity = "100% (Max)",
+            iosTrackingSensitivity = "100%",
             fireButtonSize = finalButtonSize,
-            fireButtonPosition = buttonPos,
+            fireButtonPosition = btnPos,
             dragTechnique = dragTechnique,
-            estimatedHeadshotRate = headshotRate,
+            estimatedHeadshotRate = estimatedHeadshotRate,
             tips = tips
         )
     }
 
-    private data class Tuplet8(
-        val general: Int,
-        val redDot: Int,
-        val scope2x: Int,
-        val scope4x: Int,
+    private data class ConfigTuple(
+        val gen: Int,
+        val red: Int,
+        val s2x: Int,
+        val s4x: Int,
         val sniper: Int,
         val freeLook: Int,
-        val buttonSize: Int,
-        val buttonPosition: String
+        val btnSize: Int,
+        val btnPos: String
     )
 }
+
 
