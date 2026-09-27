@@ -8,10 +8,6 @@ import android.content.SharedPreferences
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.BuildConfig
-import com.example.data.ai.AnosBotService
-import com.example.data.ai.ChatMessage
-import com.example.data.ai.MessageSender
 import com.example.data.db.AppDatabase
 import com.example.data.db.SavedPresetEntity
 import com.example.data.generator.SensitivityEngine
@@ -21,6 +17,8 @@ import com.example.data.model.DeviceSpec
 import com.example.data.model.Playstyle
 import com.example.data.model.SensitivityConfig
 import com.example.data.model.UserRole
+import com.example.ui.screens.SmoothingProfile
+import com.example.ui.theme.AppThemeMode
 import com.example.util.DeviceDetector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,6 +35,49 @@ class SensiViewModel(application: Application) : AndroidViewModel(application) {
     private val presetDao = db.presetDao()
 
     val detectedInfo = DeviceDetector.detect(application)
+
+    // Dynamic Theme selection state (6 high-end gaming themes)
+    private val _currentAppTheme = MutableStateFlow(
+        try {
+            AppThemeMode.valueOf(prefs.getString("selected_app_theme", AppThemeMode.NEON_INFERNO.name) ?: AppThemeMode.NEON_INFERNO.name)
+        } catch (_: Exception) {
+            AppThemeMode.NEON_INFERNO
+        }
+    )
+    val currentAppTheme: StateFlow<AppThemeMode> = _currentAppTheme.asStateFlow()
+
+    fun setAppTheme(theme: AppThemeMode) {
+        _currentAppTheme.value = theme
+        prefs.edit().putString("selected_app_theme", theme.name).apply()
+        _copySuccessMessage.value = "Thème appliqué : ${theme.icon} ${theme.title}"
+    }
+
+    // Touch Smoothing & Gesture Accelerator API State
+    private val _isTouchSmoothingEnabled = MutableStateFlow(
+        prefs.getBoolean("touch_smoothing_enabled", true)
+    )
+    val isTouchSmoothingEnabled: StateFlow<Boolean> = _isTouchSmoothingEnabled.asStateFlow()
+
+    private val _selectedSmoothingProfile = MutableStateFlow(
+        try {
+            SmoothingProfile.valueOf(prefs.getString("touch_smoothing_profile", SmoothingProfile.BALANCED_ONE_TAP.name) ?: SmoothingProfile.BALANCED_ONE_TAP.name)
+        } catch (_: Exception) {
+            SmoothingProfile.BALANCED_ONE_TAP
+        }
+    )
+    val selectedSmoothingProfile: StateFlow<SmoothingProfile> = _selectedSmoothingProfile.asStateFlow()
+
+    fun setTouchSmoothing(enabled: Boolean) {
+        _isTouchSmoothingEnabled.value = enabled
+        prefs.edit().putBoolean("touch_smoothing_enabled", enabled).apply()
+        _copySuccessMessage.value = if (enabled) "✨ Lissage Tactile & Anti-Jitter Activé !" else "Lissage tactile désactivé."
+    }
+
+    fun setSmoothingProfile(profile: SmoothingProfile) {
+        _selectedSmoothingProfile.value = profile
+        prefs.edit().putString("touch_smoothing_profile", profile.name).apply()
+        _copySuccessMessage.value = "Profil Tactile : ${profile.title}"
+    }
 
     // Authentication State
     private val _isAuthenticated = MutableStateFlow(prefs.getBoolean("is_logged_in", false))
@@ -77,83 +118,7 @@ class SensiViewModel(application: Application) : AndroidViewModel(application) {
     private val _copySuccessMessage = MutableStateFlow<String?>(null)
     val copySuccessMessage: StateFlow<String?> = _copySuccessMessage.asStateFlow()
 
-    // Anos Bot Chat State - Interactive Gemini-style conversation
-    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(
-        listOf(
-            ChatMessage(
-                sender = MessageSender.ANOS_BOT,
-                text = "Salut champion ! 👋 Je suis **Anos Bot**, ton coach IA et expert en calibration Free Fire.\n\nJe suis là pour échanger avec toi et t'aider à dominer tes duels avec des réglages chirurgicaux (Sensibilités 0-200, DPI optimal, taille du bouton de tir et techniques de Drag).\n\n🎮 **Pour débuter notre entraînement, dis-moi :**\n• Rencontres-tu un problème de **viseur qui vole au-dessus de la tête** ou qui **reste bloqué sur le plastron** ?\n• Quelle arme joues-tu le plus souvent (M1887, Desert Eagle, Woodpecker ou MP40) ?\n• Joues-tu **Avec ou Sans modification du DPI** ?\n\nPose-moi n'importe quelle question ou clique sur une suggestion ci-dessous pour démarrer !"
-            )
-        )
-    )
-    val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
-
-    private val _isAiThinking = MutableStateFlow(false)
-    val isAiThinking: StateFlow<Boolean> = _isAiThinking.asStateFlow()
-
     private var variationCounter = 0
-
-    val systemApiKey: String = try {
-        val key = BuildConfig.GEMINI_API_KEY
-        if (!key.isNullOrBlank() && key != "DEFAULT_API_KEY") key.trim() else AnosBotService.DEFAULT_API_KEY_FALLBACK
-    } catch (_: Exception) {
-        AnosBotService.DEFAULT_API_KEY_FALLBACK
-    }
-
-    init {
-        val savedGeminiKey = prefs.getString("custom_gemini_api_key", null)
-        if (!savedGeminiKey.isNullOrBlank()) {
-            AnosBotService.customApiKey = savedGeminiKey
-        }
-        val savedSystemPrompt = prefs.getString("custom_system_prompt", null)
-        if (!savedSystemPrompt.isNullOrBlank()) {
-            AnosBotService.customSystemPrompt = savedSystemPrompt
-        }
-    }
-
-    private val _geminiApiKey = MutableStateFlow(
-        prefs.getString("custom_gemini_api_key", null) ?: AnosBotService.getActiveApiKey()
-    )
-    val geminiApiKey: StateFlow<String> = _geminiApiKey.asStateFlow()
-
-    private val _systemPrompt = MutableStateFlow(
-        prefs.getString("custom_system_prompt", null) ?: AnosBotService.DEFAULT_SYSTEM_PROMPT
-    )
-    val systemPrompt: StateFlow<String> = _systemPrompt.asStateFlow()
-
-    fun saveCustomGeminiApiKey(key: String) {
-        val cleanKey = key.trim()
-        if (cleanKey.isBlank() || cleanKey == systemApiKey) {
-            resetToSystemApiKey()
-        } else {
-            _geminiApiKey.value = cleanKey
-            AnosBotService.customApiKey = cleanKey
-            prefs.edit().putString("custom_gemini_api_key", cleanKey).apply()
-        }
-    }
-
-    fun resetToSystemApiKey() {
-        _geminiApiKey.value = systemApiKey
-        AnosBotService.customApiKey = null
-        prefs.edit().remove("custom_gemini_api_key").apply()
-    }
-
-    fun saveCustomSystemPrompt(prompt: String) {
-        val cleanPrompt = prompt.trim()
-        if (cleanPrompt.isBlank() || cleanPrompt == AnosBotService.DEFAULT_SYSTEM_PROMPT.trim()) {
-            resetSystemPrompt()
-        } else {
-            _systemPrompt.value = cleanPrompt
-            AnosBotService.customSystemPrompt = cleanPrompt
-            prefs.edit().putString("custom_system_prompt", cleanPrompt).apply()
-        }
-    }
-
-    fun resetSystemPrompt() {
-        _systemPrompt.value = AnosBotService.DEFAULT_SYSTEM_PROMPT
-        AnosBotService.customSystemPrompt = null
-        prefs.edit().remove("custom_system_prompt").apply()
-    }
 
     private val _useDpi = MutableStateFlow(true)
     val useDpi: StateFlow<Boolean> = _useDpi.asStateFlow()
@@ -185,7 +150,6 @@ class SensiViewModel(application: Application) : AndroidViewModel(application) {
             .putString("access_key", cleanKey)
             .apply()
 
-        // If client mode, lock back to detected phone
         if (determinedRole == UserRole.CLIENT) {
             resetToAutoDetected()
         }
@@ -321,7 +285,7 @@ class SensiViewModel(application: Application) : AndroidViewModel(application) {
         )
         _currentConfig.value = newConfig
         val dpiInfo = if (newConfig.isAppleDevice) "Réglages iOS Glisse 120" else if (!newConfig.useDpi) "Sans DPI (Stock: ${newConfig.stockDpi})" else "Nouveau DPI: ${newConfig.dpi} (précédent: $oldDpi)"
-        _copySuccessMessage.value = "🎲 Sensi Régénérée ! Général: ${newConfig.general} • Point Rouge: ${newConfig.redDot} • $dpiInfo"
+        _copySuccessMessage.value = "🎲 Sensi Calibrée ! Général: ${newConfig.general} • Point Rouge: ${newConfig.redDot} • $dpiInfo"
     }
 
     fun updateGeneral(value: Int) {
@@ -419,8 +383,8 @@ class SensiViewModel(application: Application) : AndroidViewModel(application) {
         val style = _selectedPlaystyle.value
 
         val text = buildString {
-            appendLine("🔥 [SENSIFREE FIRE PRO (0-200)] 🔥")
-            appendLine("📱 Appareil : ${model.brand} ${model.model}")
+            appendLine("🔥 [ANOS SENSI V2 - CONFIGURATION OFFICIELLE] 🔥")
+            appendLine("📱 Appareil : ${model.brand} ${model.model} (${model.refreshRateHz}Hz)")
             appendLine("🎮 Style : ${style.title} (${style.badge})")
             appendLine("━━━━━━━━━━━━━━━━━━━")
             appendLine("🎯 Général : ${config.general} / 200")
@@ -430,60 +394,24 @@ class SensiViewModel(application: Application) : AndroidViewModel(application) {
             appendLine("🎯 Viseur AWM / Sniper : ${config.sniper} / 200")
             appendLine("👁️ Regard Libre : ${config.freeLook} / 200")
             appendLine("━━━━━━━━━━━━━━━━━━━")
-            appendLine("⚙️ DPI Conseillé : ${config.dpi} (D'origine: ${config.stockDpi})")
+            if (config.isAppleDevice) {
+                appendLine("🍎 iOS : Glisse 120 / AssistiveTouch 100%")
+            } else if (!config.useDpi) {
+                appendLine("🛡️ Mode Sans DPI (Stock: ${config.stockDpi})")
+            } else {
+                appendLine("⚙️ DPI Recommandé : ${config.dpi} (D'origine: ${config.stockDpi})")
+            }
             appendLine("🔘 Bouton de Tir : ${config.fireButtonSize}%")
             appendLine("📍 Placement : ${config.fireButtonPosition}")
             appendLine("💥 Technique Drag : ${config.dragTechnique}")
             appendLine("📈 Taux Headshot Estimé : ${config.estimatedHeadshotRate}%")
             appendLine("━━━━━━━━━━━━━━━━━━━")
-            appendLine("⚡ Généré avec SensiFire Pro")
+            appendLine("⚡ Calibré avec Anos Sensi V2")
         }
 
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("Sensi Free Fire", text)
         clipboard.setPrimaryClip(clip)
         Toast.makeText(context, "Sensi copiée dans le presse-papier ! ✅", Toast.LENGTH_SHORT).show()
-    }
-
-    // Anos Bot Chat Actions
-    fun sendMessageToAnosBot(userMessage: String) {
-        val trimmed = userMessage.trim()
-        if (trimmed.isBlank() || _isAiThinking.value) return
-
-        val userChat = ChatMessage(sender = MessageSender.USER, text = trimmed)
-        val currentList = _chatMessages.value.toMutableList().apply { add(userChat) }
-        _chatMessages.value = currentList
-        _isAiThinking.value = true
-
-        val deviceContext = "${_selectedModel.value.brand} ${_selectedModel.value.model} (${_selectedModel.value.refreshRateHz}Hz, DPI ${_selectedModel.value.stockDpi})"
-
-        viewModelScope.launch {
-            try {
-                val response = AnosBotService.sendMessage(
-                    history = currentList,
-                    userPrompt = trimmed,
-                    currentDeviceContext = deviceContext
-                )
-                val aiChat = ChatMessage(sender = MessageSender.ANOS_BOT, text = response)
-                _chatMessages.value = _chatMessages.value + aiChat
-            } catch (e: Exception) {
-                val errorChat = ChatMessage(
-                    sender = MessageSender.ANOS_BOT,
-                    text = "Désolé, une erreur de communication réseau est survenue. Vérifie ta connexion internet ou réessaie dans un instant."
-                )
-                _chatMessages.value = _chatMessages.value + errorChat
-            } finally {
-                _isAiThinking.value = false
-            }
-        }
-    }
-
-    fun clearAnosBotChat() {
-        _chatMessages.value = listOf(
-            ChatMessage(
-                sender = MessageSender.ANOS_BOT,
-                text = "Historique réinitialisé. Pose-moi n'importe quelle question sur tes réglages Free Fire !"
-            )
-        )
     }
 }
