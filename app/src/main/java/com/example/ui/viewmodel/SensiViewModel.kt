@@ -123,22 +123,16 @@ class SensiViewModel(application: Application) : AndroidViewModel(application) {
     private val _useDpi = MutableStateFlow(true)
     val useDpi: StateFlow<Boolean> = _useDpi.asStateFlow()
 
-    // Authentication Functions
-    private fun isAdminKey(key: String): Boolean {
-        val clean = key.trim()
-        return clean.equals("Zax11", ignoreCase = true) ||
-                clean.equals("Anos", ignoreCase = true) ||
-                clean == AuthConstants.ADMIN_SECRET_KEY
-    }
-
+    // Strict Authentication Functions
     fun authenticate(key: String): Boolean {
         val cleanKey = key.trim()
         if (cleanKey.isEmpty()) return false
 
         val determinedRole = when {
-            isAdminKey(cleanKey) -> UserRole.ADMIN
-            cleanKey.startsWith("VIP", ignoreCase = true) || cleanKey.contains("VIP", ignoreCase = true) -> UserRole.VIP
-            else -> UserRole.CLIENT
+            AuthConstants.isValidAdminKey(cleanKey) -> UserRole.ADMIN
+            AuthConstants.isValidVipKey(cleanKey) -> UserRole.VIP
+            AuthConstants.isValidClientKey(cleanKey) -> UserRole.CLIENT
+            else -> return false // REJECTED: Not a valid key format!
         }
 
         _userRole.value = determinedRole
@@ -159,21 +153,19 @@ class SensiViewModel(application: Application) : AndroidViewModel(application) {
 
     fun upgradeToVip(vipKey: String): Boolean {
         val cleanKey = vipKey.trim()
-        val isSuccessful = isAdminKey(cleanKey) ||
-                cleanKey.startsWith("VIP", ignoreCase = true) ||
-                cleanKey.contains("VIP", ignoreCase = true)
-
-        if (isSuccessful) {
-            val newRole = if (isAdminKey(cleanKey)) UserRole.ADMIN else UserRole.VIP
-            _userRole.value = newRole
-            prefs.edit()
-                .putString("user_role", newRole.name)
-                .putString("access_key", cleanKey)
-                .apply()
-            _copySuccessMessage.value = "Félicitations ! Vous êtes désormais en ${newRole.title} ⭐"
-            return true
+        val determinedRole = when {
+            AuthConstants.isValidAdminKey(cleanKey) -> UserRole.ADMIN
+            AuthConstants.isValidVipKey(cleanKey) -> UserRole.VIP
+            else -> return false // REJECTED
         }
-        return false
+
+        _userRole.value = determinedRole
+        prefs.edit()
+            .putString("user_role", determinedRole.name)
+            .putString("access_key", cleanKey)
+            .apply()
+        _copySuccessMessage.value = "Félicitations ! Vous êtes désormais en ${determinedRole.title} ⭐"
+        return true
     }
 
     fun logout() {
