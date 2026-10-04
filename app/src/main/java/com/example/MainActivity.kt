@@ -9,6 +9,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,6 +41,8 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.MusicOff
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SportsEsports
@@ -68,6 +76,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -82,27 +91,31 @@ import com.example.ui.screens.FavoritesScreen
 import com.example.ui.screens.FireButtonSimulatorScreen
 import com.example.ui.screens.GeneratorScreen
 import com.example.ui.screens.TouchSmoothingScreen
+import com.example.ui.screens.VipLockScreen
 import com.example.ui.theme.AppThemeMode
 import com.example.ui.theme.FireCrimson
 import com.example.ui.theme.FireGold
 import com.example.ui.theme.FireOrange
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.SafeGreen
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.viewmodel.SensiViewModel
+import com.example.util.BackgroundMusicManager
 
 enum class SensiNavTab(
     val title: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
+    val isVipOnly: Boolean,
     val testTag: String
 ) {
-    GENERATOR("Générateur", Icons.Filled.Tune, Icons.Outlined.Tune, "tab_generator"),
-    SMOOTHING("Lissage Tactile", Icons.Filled.TouchApp, Icons.Outlined.TouchApp, "tab_smoothing"),
-    SIMULATOR("Bouton & Drag", Icons.Filled.SportsEsports, Icons.Outlined.SportsEsports, "tab_simulator"),
-    FAVORITES("Favoris", Icons.Filled.Bookmark, Icons.Outlined.BookmarkBorder, "tab_favorites"),
-    GUIDE("Tuto DPI", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook, "tab_guide")
+    GENERATOR("Générateur", Icons.Filled.Tune, Icons.Outlined.Tune, false, "tab_generator"),
+    SMOOTHING("Lissage ⭐", Icons.Filled.TouchApp, Icons.Outlined.TouchApp, true, "tab_smoothing"),
+    SIMULATOR("Bouton & Drag ⭐", Icons.Filled.SportsEsports, Icons.Outlined.SportsEsports, true, "tab_simulator"),
+    FAVORITES("Favoris", Icons.Filled.Bookmark, Icons.Outlined.BookmarkBorder, false, "tab_favorites"),
+    GUIDE("Tuto DPI", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook, false, "tab_guide")
 }
 
 class MainActivity : ComponentActivity() {
@@ -110,6 +123,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        BackgroundMusicManager.initialize(this)
         enableEdgeToEdge()
         setContent {
             val currentAppTheme by viewModel.currentAppTheme.collectAsState()
@@ -134,15 +148,46 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        BackgroundMusicManager.resumePlayback(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        BackgroundMusicManager.pausePlayback()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        BackgroundMusicManager.release()
+    }
 }
 
 @Composable
 fun MainSensiApp(viewModel: SensiViewModel) {
+    val context = LocalContext.current
     var selectedTab by rememberSaveable { mutableStateOf(SensiNavTab.GENERATOR) }
     val userRole by viewModel.userRole.collectAsState()
     val currentTheme by viewModel.currentAppTheme.collectAsState()
+    val isMusicPlaying by BackgroundMusicManager.isPlaying.collectAsState()
+    val isMusicEnabled by BackgroundMusicManager.isMusicEnabled.collectAsState()
+
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
+
+    // Music pulse animation
+    val infiniteTransition = rememberInfiniteTransition(label = "musicPulse")
+    val musicScale by infiniteTransition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "musicIconScale"
+    )
 
     Scaffold(
         modifier = Modifier
@@ -225,6 +270,29 @@ fun MainSensiApp(viewModel: SensiViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    // Music Toggle Button (Indila - Tourner Dans Le Vide)
+                    IconButton(
+                        onClick = {
+                            BackgroundMusicManager.toggleMusic(context)
+                            val status = if (!isMusicEnabled) "🎵 Musique activée : Indila - Tourner Dans Le Vide" else "🔇 Musique en pause"
+                            Toast.makeText(context, status, Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(if (isMusicEnabled) SafeGreen.copy(alpha = 0.15f) else Color.Transparent)
+                            .testTag("btn_toggle_bg_music")
+                    ) {
+                        Icon(
+                            imageVector = if (isMusicEnabled) Icons.Default.MusicNote else Icons.Default.MusicOff,
+                            contentDescription = "Musique d'ambiance",
+                            tint = if (isMusicEnabled) SafeGreen else TextMuted,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .then(if (isMusicEnabled && isMusicPlaying) Modifier.scale(musicScale) else Modifier)
+                        )
+                    }
+
                     // Theme picker button
                     IconButton(
                         onClick = { showThemeDialog = true },
@@ -283,7 +351,7 @@ fun MainSensiApp(viewModel: SensiViewModel) {
                             label = {
                                 Text(
                                     text = tab.title,
-                                    fontSize = 9.sp,
+                                    fontSize = 8.5.sp,
                                     maxLines = 1,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
@@ -313,13 +381,33 @@ fun MainSensiApp(viewModel: SensiViewModel) {
                         viewModel = viewModel,
                         onNavigateToSimulator = { selectedTab = SensiNavTab.SIMULATOR }
                     )
-                    SensiNavTab.SMOOTHING -> TouchSmoothingScreen(
-                        viewModel = viewModel
-                    )
-                    SensiNavTab.SIMULATOR -> FireButtonSimulatorScreen(
-                        viewModel = viewModel,
-                        onBack = { selectedTab = SensiNavTab.GENERATOR }
-                    )
+                    SensiNavTab.SMOOTHING -> {
+                        if (userRole.isVipOrAdmin) {
+                            TouchSmoothingScreen(viewModel = viewModel)
+                        } else {
+                            VipLockScreen(
+                                featureTitle = "Moteur de Lissage Tactile & Anti-Jitter",
+                                featureDescription = "L'algorithme d'interpolation et de filtrage haute fréquence (Hz) pour stabiliser le drag One-Tap est réservé aux membres VIP.",
+                                viewModel = viewModel,
+                                onBackToFree = { selectedTab = SensiNavTab.GENERATOR }
+                            )
+                        }
+                    }
+                    SensiNavTab.SIMULATOR -> {
+                        if (userRole.isVipOrAdmin) {
+                            FireButtonSimulatorScreen(
+                                viewModel = viewModel,
+                                onBack = { selectedTab = SensiNavTab.GENERATOR }
+                            )
+                        } else {
+                            VipLockScreen(
+                                featureTitle = "Simulateur Bouton & Drag One-Tap",
+                                featureDescription = "Le banc d'essai interactif de tir, les cibles mobiles et les guides de trajectoire de Headshot sont réservés aux membres VIP.",
+                                viewModel = viewModel,
+                                onBackToFree = { selectedTab = SensiNavTab.GENERATOR }
+                            )
+                        }
+                    }
                     SensiNavTab.FAVORITES -> FavoritesScreen(
                         viewModel = viewModel,
                         onNavigateToGenerator = { selectedTab = SensiNavTab.GENERATOR }
@@ -402,7 +490,7 @@ fun MainSensiApp(viewModel: SensiViewModel) {
             },
             text = {
                 Text(
-                    "Voulez-vous vous déconnecter pour entrer une autre clé d'accès (VIP, Admin com.dts ou Client) ?",
+                    "Voulez-vous vous déconnecter pour entrer une autre clé d'accès (VIP, Admin Zax11 ou Client) ?",
                     color = TextSecondary,
                     fontSize = 13.sp
                 )

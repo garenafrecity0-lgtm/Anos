@@ -5,6 +5,12 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -12,6 +18,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,16 +40,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -59,6 +72,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -74,6 +88,7 @@ import com.example.ui.theme.DarkObsidian
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DarkSurfaceElevated
 import com.example.ui.theme.DarkSurfaceVariant
+import com.example.ui.theme.FireCrimson
 import com.example.ui.theme.FireGold
 import com.example.ui.theme.FireOrange
 import com.example.ui.theme.HeadshotRed
@@ -84,6 +99,13 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.viewmodel.SensiViewModel
 import kotlin.math.roundToInt
+
+enum class SimulatorAssistanceLevel(val title: String, val badge: String, val assistFactor: Float) {
+    OFF("Désactivé", "BRUT", 1.0f),
+    MINIMAL("Minimal", "FLUIDE", 1.25f),
+    BALANCED("Équilibré", "PRO", 1.5f),
+    ADVANCED("Avancé", "LASER", 1.8f)
+}
 
 @Composable
 fun FireButtonSimulatorScreen(
@@ -96,16 +118,36 @@ fun FireButtonSimulatorScreen(
 
     var buttonSizePercent by remember { mutableIntStateOf(currentConfig.fireButtonSize) }
 
+    // Advanced visual precision & moving target options
+    var isPrecisionModeEnabled by remember { mutableStateOf(true) }
+    var isMovingTargetEnabled by remember { mutableStateOf(false) }
+    var selectedAssistance by remember { mutableStateOf(SimulatorAssistanceLevel.BALANCED) }
+
+    // Target animation
+    val infiniteTransition = rememberInfiniteTransition(label = "targetMotion")
+    val animatedTargetX by infiniteTransition.animateFloat(
+        initialValue = -90f,
+        targetValue = 90f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "targetX"
+    )
+
+    val currentTargetOffsetX = if (isMovingTargetEnabled) animatedTargetX else 0f
+
     // Drag simulation states
     var dragStartY by remember { mutableFloatStateOf(0f) }
     var dragDeltaY by remember { mutableFloatStateOf(0f) }
+    var dragDeltaX by remember { mutableFloatStateOf(0f) }
     var dragStartTime by remember { mutableLongStateOf(0L) }
     var isDragging by remember { mutableStateOf(false) }
 
     // Hit results
     var lastHitType by remember { mutableStateOf<HitType?>(null) }
     var damageNumber by remember { mutableIntStateOf(0) }
-    var feedbackMessage by remember { mutableStateOf("Appuyez sur le bouton de tir et levez rapidement vers le haut !") }
+    var feedbackMessage by remember { mutableStateOf("Appuyez sur le bouton de tir et levez rapidement le pouce vers la tête !") }
 
     // Stats
     var totalShots by remember { mutableIntStateOf(0) }
@@ -116,6 +158,7 @@ fun FireButtonSimulatorScreen(
     }
 
     val scrollState = rememberScrollState()
+    val themePrimary = MaterialTheme.colorScheme.primary
 
     Column(
         modifier = modifier
@@ -148,13 +191,13 @@ fun FireButtonSimulatorScreen(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Simulateur Bouton de Tir",
+                    text = "Simulateur & Précision Drag",
                     color = TextPrimary,
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Test de Levée de Mire (Drag Shot) en Direct",
+                    text = "Banc de Test & Analyse Tactile en Direct",
                     color = FireGold,
                     fontSize = 11.sp
                 )
@@ -220,11 +263,11 @@ fun FireButtonSimulatorScreen(
 
         // Free Fire Training Canvas (Interactive Area)
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F131C)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0C101A)),
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .height(310.dp)
                 .border(2.dp, if (lastHitType == HitType.HEADSHOT) HeadshotRed else DarkBorder, RoundedCornerShape(18.dp))
         ) {
             Box(
@@ -232,56 +275,110 @@ fun FireButtonSimulatorScreen(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                // Target in the upper section (Enemy head & chest silhouette)
+                // Background visual tracking grid & distance cues
+                if (isPrecisionModeEnabled) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val centerX = size.width / 2
+                        // Center crosshair axis
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.08f),
+                            start = Offset(centerX, 0f),
+                            end = Offset(centerX, size.height),
+                            strokeWidth = 1.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                        )
+                        // Drag trajectory indicator when dragging
+                        if (isDragging) {
+                            drawLine(
+                                color = themePrimary.copy(alpha = 0.5f),
+                                start = Offset(centerX, size.height - 50.dp.toPx()),
+                                end = Offset(centerX + dragDeltaX, size.height - 50.dp.toPx() + dragDeltaY),
+                                strokeWidth = 3.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+                            )
+                        }
+                    }
+                }
+
+                // Target silhouette with Bounding Box
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 10.dp),
+                        .offset { IntOffset(currentTargetOffsetX.roundToInt(), 0) }
+                        .padding(top = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Head hitbox
+                    // Rectangular tracking bounding box
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (lastHitType == HitType.HEADSHOT) HeadshotRed
-                                else HeadshotRed.copy(alpha = 0.25f)
-                            )
+                            .clip(RoundedCornerShape(8.dp))
                             .border(
-                                2.dp,
-                                if (lastHitType == HitType.HEADSHOT) Color.White else HeadshotRed,
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
+                                1.5.dp,
+                                if (lastHitType == HitType.HEADSHOT) HeadshotRed
+                                else if (isPrecisionModeEnabled) CyberCyan.copy(alpha = 0.6f)
+                                else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .background(
+                                if (isPrecisionModeEnabled) CyberCyan.copy(alpha = 0.05f) else Color.Transparent
+                            )
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        Text(
-                            text = "TÊTE",
-                            color = Color.White,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            // Head hitbox
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (lastHitType == HitType.HEADSHOT) HeadshotRed
+                                        else HeadshotRed.copy(alpha = 0.3f)
+                                    )
+                                    .border(
+                                        2.dp,
+                                        if (lastHitType == HitType.HEADSHOT) Color.White else HeadshotRed,
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "TÊTE",
+                                    color = Color.White,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            // Body hitbox
+                            Box(
+                                modifier = Modifier
+                                    .width(54.dp)
+                                    .height(58.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (lastHitType == HitType.BODY) HeadshotYellow.copy(alpha = 0.6f)
+                                        else DarkSurfaceElevated
+                                    )
+                                    .border(1.dp, DarkBorder, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "CORPS",
+                                    color = TextMuted,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // Body hitbox
-                    Box(
-                        modifier = Modifier
-                            .width(58.dp)
-                            .height(64.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (lastHitType == HitType.BODY) HeadshotYellow.copy(alpha = 0.6f)
-                                else DarkSurfaceElevated
-                            )
-                            .border(1.dp, DarkBorder, RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    if (isPrecisionModeEnabled) {
                         Text(
-                            text = "CORPS",
-                            color = TextMuted,
-                            fontSize = 9.sp,
+                            text = "[CIBLE : ${if (isMovingTargetEnabled) "MOBILE" else "FIXE"}]",
+                            color = CyberCyan,
+                            fontSize = 8.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -292,7 +389,7 @@ fun FireButtonSimulatorScreen(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    androidx.compose.animation.AnimatedVisibility(
+                    AnimatedVisibility(
                         visible = lastHitType != null,
                         enter = scaleIn() + fadeIn(),
                         exit = scaleOut() + fadeOut()
@@ -342,20 +439,19 @@ fun FireButtonSimulatorScreen(
                 }
 
                 // Interactive Fire Button
-                // Calculates pixel size based on percentage (30% to 80%)
                 val buttonPx = (50 + (buttonSizePercent * 0.9f)).dp
 
                 Box(
                     modifier = Modifier
                         .size(buttonPx)
                         .align(Alignment.BottomCenter)
-                        .offset { IntOffset(0, dragDeltaY.roundToInt().coerceIn(-180, 0)) }
+                        .offset { IntOffset(dragDeltaX.roundToInt().coerceIn(-100, 100), dragDeltaY.roundToInt().coerceIn(-180, 0)) }
                         .clip(CircleShape)
                         .background(
                             Brush.radialGradient(
                                 listOf(
                                     FireOrange,
-                                    FireOrangeDark(buttonSizePercent),
+                                    FireCrimson,
                                     Color(0xFF3E1205)
                                 )
                             )
@@ -365,57 +461,64 @@ fun FireButtonSimulatorScreen(
                             color = if (isDragging) FireGold else Color.White.copy(alpha = 0.8f),
                             shape = CircleShape
                         )
-                        .pointerInput(buttonSizePercent) {
+                        .pointerInput(buttonSizePercent, selectedAssistance, isMovingTargetEnabled) {
                             detectDragGestures(
                                 onDragStart = { offset ->
                                     isDragging = true
                                     dragStartY = offset.y
                                     dragDeltaY = 0f
+                                    dragDeltaX = 0f
                                     dragStartTime = System.currentTimeMillis()
                                 },
                                 onDragEnd = {
                                     isDragging = false
                                     val durationMs = (System.currentTimeMillis() - dragStartTime).coerceAtLeast(1)
-                                    val swipeDistance = -dragDeltaY // positive upward
+                                    val swipeDistance = -dragDeltaY * selectedAssistance.assistFactor
                                     totalShots++
 
-                                    // Evaluation logic based on swipe distance & speed
-                                    if (swipeDistance > 40 && swipeDistance < 220 && durationMs < 450) {
+                                    // Evaluation logic based on swipe distance, alignment & assistance
+                                    val isAlignedWithTarget = if (isMovingTargetEnabled) {
+                                        kotlin.math.abs(dragDeltaX - currentTargetOffsetX) < 70f
+                                    } else true
+
+                                    if (swipeDistance in 45f..235f && durationMs < 480 && isAlignedWithTarget) {
                                         // Golden Drag Zone -> HEADSHOT
                                         lastHitType = HitType.HEADSHOT
                                         damageNumber = listOf(495, 272, 330, 248).random()
                                         headshotCount++
                                         feedbackMessage = "💥 PARFAIT ! Vitesse de drag impeccable (${durationMs}ms) !"
                                         vibratePhone(vibrator, true)
-                                    } else if (swipeDistance >= 220) {
+                                    } else if (swipeDistance >= 235f) {
                                         // Dragged too high
                                         lastHitType = HitType.OVER_DRAG
                                         damageNumber = 0
                                         feedbackMessage = "❌ Le tir a dépassé la tête ! Baissez un peu la sensi."
                                         vibratePhone(vibrator, false)
                                     } else {
-                                        // Drag was too weak or slow -> Body hit
+                                        // Drag was too weak or off-target -> Body hit
                                         lastHitType = HitType.BODY
                                         damageNumber = listOf(95, 112, 134, 88).random()
-                                        feedbackMessage = "⚠️ Tir dans le corps. Levez le pouce plus vite et plus haut !"
+                                        feedbackMessage = "⚠️ Tir dans le corps. Levez le pouce plus vite vers la tête !"
                                         vibratePhone(vibrator, false)
                                     }
                                     dragDeltaY = 0f
+                                    dragDeltaX = 0f
                                 },
                                 onDragCancel = {
                                     isDragging = false
                                     dragDeltaY = 0f
+                                    dragDeltaX = 0f
                                 },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     dragDeltaY += dragAmount.y
+                                    dragDeltaX += dragAmount.x * 0.7f
                                 }
                             )
                         }
                         .testTag("interactive_fire_button"),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Inner bullet icon / crosshair design
                     Canvas(modifier = Modifier.size(buttonPx * 0.55f)) {
                         drawCircle(
                             color = Color.White.copy(alpha = 0.85f),
@@ -452,6 +555,124 @@ fun FireButtonSimulatorScreen(
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center
             )
+        }
+
+        // Options: Precision Mode & Moving Target
+        Card(
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, DarkBorder, RoundedCornerShape(16.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "🎯 Options d'Entraînement Avancé",
+                    color = TextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Precision Mode Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Visibility, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(18.dp))
+                        Column {
+                            Text("Repères Visuels & Bounding Box", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Encadre la cible et trace la ligne de tir", color = TextSecondary, fontSize = 10.sp)
+                        }
+                    }
+                    Switch(
+                        checked = isPrecisionModeEnabled,
+                        onCheckedChange = { isPrecisionModeEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = CyberCyan
+                        )
+                    )
+                }
+
+                // Moving Target Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.GpsFixed, contentDescription = null, tint = FireOrange, modifier = Modifier.size(18.dp))
+                        Column {
+                            Text("Cible Mobile Dynamique", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Simule le déplacement d'un ennemi", color = TextSecondary, fontSize = 10.sp)
+                        }
+                    }
+                    Switch(
+                        checked = isMovingTargetEnabled,
+                        onCheckedChange = { isMovingTargetEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = FireOrange
+                        )
+                    )
+                }
+
+                // Assistance Level Selector
+                Text(
+                    text = "Assistance Tactile au Tir (Simulation) :",
+                    color = TextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    SimulatorAssistanceLevel.entries.forEach { level ->
+                        val isSelected = selectedAssistance == level
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else DarkSurfaceVariant)
+                                .border(
+                                    1.dp,
+                                    if (isSelected) MaterialTheme.colorScheme.primary else DarkBorder,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable { selectedAssistance = level }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = level.title,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else TextPrimary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = level.badge,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else TextMuted,
+                                    fontSize = 8.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Fire Button Size Adjuster
@@ -569,10 +790,6 @@ private enum class HitType {
     HEADSHOT,
     BODY,
     OVER_DRAG
-}
-
-private fun FireOrangeDark(size: Int): Color {
-    return Color(0xFFC0392B)
 }
 
 private fun vibratePhone(vibrator: Vibrator?, isHeadshot: Boolean) {

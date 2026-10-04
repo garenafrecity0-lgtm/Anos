@@ -6,19 +6,19 @@ enum class UserRole(
     val description: String
 ) {
     CLIENT(
-        title = "Mode Client",
+        title = "Mode Client Gratuit",
         badge = "CLIENT GRATUIT",
-        description = "Accès limité à la sensibilité de votre appareil auto-détecté."
+        description = "Accès à la sensibilité de votre appareil auto-détecté."
     ),
     VIP(
         title = "Mode VIP Permanent",
         badge = "VIP ⭐",
-        description = "Tous modèles mondiaux débloqués + IA Anos Bot illimitée."
+        description = "Lissage Tactile + Simulateur Drag + Tous modèles mondiaux débloqués."
     ),
     ADMIN(
         title = "Mode Administrateur",
         badge = "ADMIN 👑",
-        description = "Accès maître total aux réglages, diagnostics et modèles mondiaux."
+        description = "Accès maître total illimité à tous les modules."
     );
 
     val isVipOrAdmin: Boolean
@@ -29,5 +29,7 @@ object AuthConstants {
     const val ADMIN_SECRET_KEY = "Zax11"
     const val CLIENT_DEFAULT_KEY = "CLIENT-FREE-2025"
     const val WHATSAPP_NUMBER = "+23407071776576"
-    const val WHATSAPP_URL = "https://wa.me/23407071776576?text=Bonjour,%20je%20souhaite%20acheter%20une%20cl%C3%A9%20d'acc%C3%A8s%20VIP%20permanent%20pour%20Anos%20Sensi%20V2"
+    const val WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029Vb8k9tlKWEKq1XAtKm0e"
+    const val WHATSAPP_DIRECT_URL = "https://wa.me/23407071776576?text=Bonjour,%20je%20souhaite%20obtenir%20une%20cl%C3%A9%20d'acc%C3%A8s%20VIP%20pour%20Anos%20Sensi%20V2"
+    const val WHATSAPP_URL = WHATSAPP_DIRECT_URL
 }

@@ -7,7 +7,12 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,10 +35,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.MusicOff
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
@@ -45,10 +51,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,12 +64,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -69,10 +76,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
 import com.example.data.model.AuthConstants
-import com.example.ui.theme.CyberCyan
-import com.example.ui.theme.CyberGreen
 import com.example.ui.theme.DarkBorder
 import com.example.ui.theme.DarkObsidian
 import com.example.ui.theme.DarkSurface
@@ -81,11 +85,13 @@ import com.example.ui.theme.DarkSurfaceVariant
 import com.example.ui.theme.FireCrimson
 import com.example.ui.theme.FireGold
 import com.example.ui.theme.FireOrange
+import com.example.ui.theme.HeadshotRed
+import com.example.ui.theme.SafeGreen
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.WarningAmber
 import com.example.ui.viewmodel.SensiViewModel
+import com.example.util.BackgroundMusicManager
 
 @Composable
 fun AuthScreen(
@@ -96,15 +102,40 @@ fun AuthScreen(
     var inputKey by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var hasClickedChannel by remember { mutableStateOf(false) }
+
+    val isMusicPlaying by BackgroundMusicManager.isPlaying.collectAsState()
+    val isMusicEnabled by BackgroundMusicManager.isMusicEnabled.collectAsState()
+
+    val infiniteTransition = rememberInfiniteTransition(label = "musicPulseAuth")
+    val musicScale by infiniteTransition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "musicIconScaleAuth"
+    )
 
     val scrollState = rememberScrollState()
 
-    fun openWhatsApp() {
+    fun openWhatsAppChannel() {
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(AuthConstants.WHATSAPP_URL))
+            hasClickedChannel = true
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(AuthConstants.WHATSAPP_CHANNEL_URL))
             context.startActivity(intent)
         } catch (_: Exception) {
-            Toast.makeText(context, "Impossible d'ouvrir WhatsApp. Contactez le ${AuthConstants.WHATSAPP_NUMBER}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Impossible d'ouvrir le lien de la chaîne WhatsApp.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun openWhatsAppDirect() {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(AuthConstants.WHATSAPP_DIRECT_URL))
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(context, "Impossible d'ouvrir WhatsApp.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -113,158 +144,246 @@ fun AuthScreen(
             .fillMaxSize()
             .background(DarkObsidian)
             .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp, vertical = 24.dp),
+            .padding(horizontal = 20.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Spacer(modifier = Modifier.height(12.dp))
+        // Music Banner & Toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(DarkSurfaceVariant)
+                .border(1.dp, if (isMusicEnabled) SafeGreen.copy(alpha = 0.4f) else DarkBorder, RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = if (isMusicEnabled) Icons.Default.MusicNote else Icons.Default.MusicOff,
+                    contentDescription = null,
+                    tint = if (isMusicEnabled) SafeGreen else TextMuted,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .then(if (isMusicEnabled && isMusicPlaying) Modifier.scale(musicScale) else Modifier)
+                )
+
+                Text(
+                    text = if (isMusicEnabled) "🎵 Indila - Tourner Dans Le Vide" else "🔇 Musique en pause",
+                    color = if (isMusicEnabled) TextPrimary else TextMuted,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
+                )
+            }
+
+            IconButton(
+                onClick = {
+                    BackgroundMusicManager.toggleMusic(context)
+                    val status = if (!isMusicEnabled) "🎵 Musique activée : Indila - Tourner Dans Le Vide" else "🔇 Musique en pause"
+                    Toast.makeText(context, status, Toast.LENGTH_SHORT).show()
+                },
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    imageVector = if (isMusicEnabled) Icons.Default.MusicNote else Icons.Default.MusicOff,
+                    contentDescription = "Toggle Music",
+                    tint = if (isMusicEnabled) SafeGreen else TextMuted,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
 
         // App Logo & Header
         Box(
             modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(22.dp))
+                .size(72.dp)
+                .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.linearGradient(listOf(FireOrange, FireCrimson))
                 )
-                .border(2.dp, FireGold.copy(alpha = 0.6f), RoundedCornerShape(22.dp)),
+                .border(2.dp, FireGold.copy(alpha = 0.6f), RoundedCornerShape(20.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Shield,
-                contentDescription = "Logo SensiFire",
+                contentDescription = "Logo Anos Sensi V2",
                 tint = Color.White,
-                modifier = Modifier.size(46.dp)
+                modifier = Modifier.size(40.dp)
             )
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "ANOS SENSI V2",
-                fontSize = 26.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
                 color = TextPrimary,
                 letterSpacing = 1.sp
             )
             Text(
-                text = "Générateur Ultime de Sensibilité & Calibration Free Fire",
+                text = "Générateur & Calibration Headshot Free Fire",
                 fontSize = 12.sp,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
             )
         }
 
-        // CLIENT ACCESS KEY CARD (Only client key is shown, NEVER admin key)
+        // 🚨 WHATSAPP CHANNEL MANDATORY BARRIER
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(18.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, CyberCyan.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                .border(1.5.dp, SafeGreen.copy(alpha = 0.8f), RoundedCornerShape(18.dp))
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(SafeGreen.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Chat,
+                            contentDescription = null,
+                            tint = SafeGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "BARRIÈRE D'ACCÈS OBLIGATOIRE",
+                            color = SafeGreen,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Rejoignez la chaîne pour débloquer l'accès",
+                            color = TextSecondary,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Pour accéder gratuitement à l'application et recevoir les mises à jour de sensibilités Free Fire, vous devez obligatoirement rejoindre notre chaîne WhatsApp officielle.",
+                    color = TextPrimary,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
+                )
+
+                Text(
+                    text = "👉 Étape 1 : Cliquez sur le bouton vert ci-dessous pour rejoindre la chaîne.\n👉 Étape 2 : Revenez dans l'application et cliquez sur 'J'ai rejoint la chaîne' pour ouvrir votre accès gratuit immédiat !",
+                    color = FireGold,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 16.sp
+                )
+
+                // Step 1: Open WhatsApp Channel
+                Button(
+                    onClick = { openWhatsAppChannel() },
+                    colors = ButtonDefaults.buttonColors(containerColor = SafeGreen),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("btn_join_whatsapp_channel")
+                ) {
+                    Icon(imageVector = Icons.Outlined.Chat, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "1. Rejoindre la Chaîne WhatsApp",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // Step 2: Confirm and enter free mode
+                Button(
+                    onClick = {
+                        val success = viewModel.authenticate(AuthConstants.CLIENT_DEFAULT_KEY)
+                        if (success) {
+                            Toast.makeText(context, "Bienvenue sur Anos Sensi V2 (Mode Gratuit) ! 🔥", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (hasClickedChannel) FireOrange else DarkSurfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("btn_confirm_joined_free_access")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = if (hasClickedChannel) Color.White else FireOrange
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "2. J'ai rejoint la chaîne (Entrer en Gratuit)",
+                        color = if (hasClickedChannel) Color.White else FireOrange,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        // 👑 VIP & ADMIN ACCESS KEY CARD
+        Card(
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, FireGold.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Key,
+                        imageVector = Icons.Default.Star,
                         contentDescription = null,
-                        tint = CyberCyan,
+                        tint = FireGold,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Clé d'Accès Client Gratuite",
-                        color = CyberCyan,
-                        fontSize = 13.sp,
+                        text = "Accès VIP & Administrateur",
+                        color = FireGold,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
                 Text(
-                    text = "Utilisez la clé publique ci-dessous pour ouvrir l'application en Mode Client gratuit :",
+                    text = "Vous possédez une clé VIP ou Admin ? Entrez-la pour débloquer le Lissage Tactile, le Simulateur One-Tap et tous les modèles mondiaux :",
                     color = TextSecondary,
-                    fontSize = 12.sp
-                )
-
-                // Key display box with 1-tap copy
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(DarkObsidian)
-                        .border(1.dp, DarkBorder, RoundedCornerShape(10.dp))
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = AuthConstants.CLIENT_DEFAULT_KEY,
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IconButton(
-                            onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("Clé Client", AuthConstants.CLIENT_DEFAULT_KEY)
-                                clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, "Clé copiée !", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "Copier la clé",
-                                tint = CyberCyan,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        Button(
-                            onClick = {
-                                inputKey = AuthConstants.CLIENT_DEFAULT_KEY
-                                viewModel.authenticate(AuthConstants.CLIENT_DEFAULT_KEY)
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CyberCyan.copy(alpha = 0.25f)),
-                            modifier = Modifier.testTag("btn_use_client_key")
-                        ) {
-                            Text(
-                                text = "Insérer & Ouvrir",
-                                color = CyberCyan,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Input Field for Manual Key (Supports Client, VIP, and Admin keys)
-        Card(
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, DarkBorder, RoundedCornerShape(16.dp))
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Text(
-                    text = "Saisir votre Clé d'Accès",
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp
                 )
 
                 OutlinedTextField(
@@ -275,45 +394,41 @@ fun AuthScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("input_auth_key"),
-                    placeholder = {
-                        Text("Entrez votre clé d'accès...", color = TextMuted, fontSize = 13.sp)
-                    },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        .testTag("input_access_key"),
+                    placeholder = { Text("Clé VIP ou Admin (ex: Zax11)", color = TextMuted, fontSize = 12.sp) },
                     singleLine = true,
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Default.Lock,
+                            imageVector = Icons.Default.Key,
                             contentDescription = null,
-                            tint = FireOrange
+                            tint = FireGold
                         )
                     },
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
                                 imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (passwordVisible) "Masquer" else "Afficher",
+                                contentDescription = "Afficher/Masquer",
                                 tint = TextMuted
                             )
                         }
                     },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            if (inputKey.isNotBlank()) {
-                                viewModel.authenticate(inputKey)
-                            } else {
-                                errorMessage = "Veuillez saisir une clé d'accès."
+                    keyboardActions = KeyboardActions(onDone = {
+                        if (inputKey.isNotBlank()) {
+                            val success = viewModel.authenticate(inputKey)
+                            if (!success) {
+                                errorMessage = "Clé d'accès incorrecte."
                             }
                         }
-                    ),
+                    }),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = FireOrange,
+                        focusedBorderColor = FireGold,
                         unfocusedBorderColor = DarkBorder,
-                        focusedContainerColor = DarkSurfaceVariant,
-                        unfocusedContainerColor = DarkSurfaceVariant
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        cursorColor = FireGold
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -321,168 +436,57 @@ fun AuthScreen(
                 AnimatedVisibility(visible = errorMessage != null) {
                     Text(
                         text = errorMessage ?: "",
-                        color = FireCrimson,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        color = HeadshotRed,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
                 Button(
                     onClick = {
-                        if (inputKey.isNotBlank()) {
-                            val success = viewModel.authenticate(inputKey)
-                            if (!success) {
-                                errorMessage = "Clé invalide. Veuillez réessayer."
-                            }
-                        } else {
-                            errorMessage = "Veuillez entrer une clé ou cliquer sur la clé client ci-dessus."
+                        if (inputKey.isBlank()) {
+                            errorMessage = "Veuillez saisir votre clé d'accès."
+                            return@Button
+                        }
+                        val success = viewModel.authenticate(inputKey)
+                        if (!success) {
+                            errorMessage = "Clé d'accès incorrecte."
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("btn_unlock_access"),
-                    colors = ButtonDefaults.buttonColors(containerColor = FireOrange),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Login,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                        Text(
-                            text = "DÉVERROUILLER L'ACCÈS",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-        }
-
-        // WhatsApp VIP Purchase Banner
-        Card(
-            colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, FireGold.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(FireGold.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = FireGold,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "PASSER EN MODE VIP PERMANENT",
-                            color = FireGold,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = "Débloquez tous les appareils + IA Anos Bot",
-                            color = TextSecondary,
-                            fontSize = 11.sp
-                        )
-                    }
-                }
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(start = 4.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = CyberGreen, modifier = Modifier.size(16.dp))
-                        Text("Génération pour TOUS les smartphones du monde", color = TextSecondary, fontSize = 12.sp)
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = CyberGreen, modifier = Modifier.size(16.dp))
-                        Text("Accès complet à l'IA Anos Bot (Profil Café Noir)", color = TextSecondary, fontSize = 12.sp)
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = CyberGreen, modifier = Modifier.size(16.dp))
-                        Text("Clé permanente à vie sans abonnement", color = TextSecondary, fontSize = 12.sp)
-                    }
-                }
-
-                Button(
-                    onClick = { openWhatsApp() },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = FireGold),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
-                        .testTag("btn_buy_vip_whatsapp"),
-                    colors = ButtonDefaults.buttonColors(containerColor = CyberGreen),
-                    shape = RoundedCornerShape(12.dp)
+                        .testTag("btn_login_submit")
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Chat,
-                            contentDescription = "WhatsApp",
-                            tint = Color.Black
-                        )
-                        Text(
-                            text = "Acheter Clé VIP Permanent (WhatsApp)",
-                            color = Color.Black,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 13.sp
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Login,
+                        contentDescription = null,
+                        tint = Color.Black
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Valider la Clé & Débloquer le VIP",
+                        color = Color.Black,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Buy VIP Key direct contact
+                OutlinedButton(
+                    onClick = { openWhatsAppDirect() },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = FireGold),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, FireGold.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth().height(44.dp)
+                ) {
+                    Icon(Icons.Outlined.Chat, contentDescription = null, tint = FireGold, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Acheter une Clé VIP Permanente sur WhatsApp", color = FireGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
-        }
-
-        // Comparison Table / Info
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = "Support WhatsApp : ${AuthConstants.WHATSAPP_NUMBER}",
-                color = TextMuted,
-                fontSize = 11.sp,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "SensiFire Pro v2.0 • Conçu pour Free Fire & Free Fire MAX",
-                color = TextMuted.copy(alpha = 0.7f),
-                fontSize = 10.sp
-            )
         }
     }
 }
