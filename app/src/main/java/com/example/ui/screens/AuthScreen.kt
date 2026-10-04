@@ -174,7 +174,7 @@ fun AuthScreen(
                 )
 
                 Text(
-                    text = if (isMusicEnabled) "🎵 Indila - Tourner Dans Le Vide" else "🔇 Musique en pause",
+                    text = if (isMusicEnabled) "🇧🇷 Brazilian Phonk - Montagem Diamante" else "🔇 Musique en pause",
                     color = if (isMusicEnabled) TextPrimary else TextMuted,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
@@ -185,7 +185,7 @@ fun AuthScreen(
             IconButton(
                 onClick = {
                     BackgroundMusicManager.toggleMusic(context)
-                    val status = if (!isMusicEnabled) "🎵 Musique activée : Indila - Tourner Dans Le Vide" else "🔇 Musique en pause"
+                    val status = if (!isMusicEnabled) "🇧🇷 Brazilian Phonk activé !" else "🔇 Musique en pause"
                     Toast.makeText(context, status, Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier.size(28.dp)

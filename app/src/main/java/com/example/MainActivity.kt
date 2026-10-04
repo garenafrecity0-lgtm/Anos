@@ -270,11 +270,11 @@ fun MainSensiApp(viewModel: SensiViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Music Toggle Button (Indila - Tourner Dans Le Vide)
+                    // Music Toggle Button (Brazilian Phonk)
                     IconButton(
                         onClick = {
                             BackgroundMusicManager.toggleMusic(context)
-                            val status = if (!isMusicEnabled) "🎵 Musique activée : Indila - Tourner Dans Le Vide" else "🔇 Musique en pause"
+                            val status = if (!isMusicEnabled) "🇧🇷 Brazilian Phonk activé !" else "🔇 Musique en pause"
                             Toast.makeText(context, status, Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier

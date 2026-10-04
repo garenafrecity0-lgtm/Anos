@@ -18,16 +18,22 @@ object BackgroundMusicManager {
     private const val PREFS_NAME = "sensifire_music_prefs"
     private const val KEY_MUSIC_ENABLED = "bg_music_enabled"
 
-    // Direct streaming sources for Indila - Tourner dans le vide
+    // High Energy Brazilian Phonk / Montagem Drift Audio Sources
     private val AUDIO_SOURCES = listOf(
-        "https://archive.org/download/IndilaTournerDansLeVide/Indila%20-%20Tourner%20Dans%20Le%20Vide.mp3",
-        "https://raw.githubusercontent.com/sensifire-assets/audio/main/indila_tourner_dans_le_vide.mp3",
-        "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3"
+        "https://cdn.pixabay.com/download/audio/2023/04/06/audio_403c9d1c7a.mp3",
+        "https://cdn.pixabay.com/download/audio/2022/11/06/audio_9748b625ca.mp3",
+        "https://cdn.pixabay.com/download/audio/2023/09/24/audio_34b3dc04c0.mp3"
     )
 
     private var currentSourceIndex = 0
     private var mediaPlayer: MediaPlayer? = null
     private var prefs: SharedPreferences? = null
+
+    @Volatile
+    private var isPrepared = false
+
+    @Volatile
+    private var isPreparing = false
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
@@ -35,9 +41,10 @@ object BackgroundMusicManager {
     private val _isMusicEnabled = MutableStateFlow(true)
     val isMusicEnabled: StateFlow<Boolean> = _isMusicEnabled.asStateFlow()
 
-    private val _currentTrackTitle = MutableStateFlow("Indila - Tourner Dans Le Vide")
+    private val _currentTrackTitle = MutableStateFlow("🇧🇷 Brazilian Phonk - Montagem Diamante")
     val currentTrackTitle: StateFlow<String> = _currentTrackTitle.asStateFlow()
 
+    @Synchronized
     fun initialize(context: Context) {
         if (prefs == null) {
             prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -49,14 +56,22 @@ object BackgroundMusicManager {
         }
     }
 
+    @Synchronized
     fun startPlayback(context: Context) {
+        if (isPreparing) {
+            return
+        }
+
         if (currentSourceIndex >= AUDIO_SOURCES.size) {
             currentSourceIndex = 0
         }
         val sourceUrl = AUDIO_SOURCES[currentSourceIndex]
 
         try {
-            mediaPlayer?.release()
+            cleanupPlayer()
+            isPreparing = true
+            isPrepared = false
+
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -65,107 +80,125 @@ object BackgroundMusicManager {
                         .build()
                 )
                 isLooping = true
-                setVolume(0.6f, 0.6f)
+                setVolume(0.65f, 0.65f)
 
                 setDataSource(context.applicationContext, Uri.parse(sourceUrl))
 
                 setOnPreparedListener { mp ->
-                    if (_isMusicEnabled.value) {
-                        mp.start()
-                        _isPlaying.value = true
-                        Log.d(TAG, "Indila - Tourner Dans Le Vide playback started successfully from $sourceUrl")
+                    synchronized(this@BackgroundMusicManager) {
+                        isPreparing = false
+                        isPrepared = true
+                        if (_isMusicEnabled.value) {
+                            try {
+                                mp.start()
+                                _isPlaying.value = true
+                                Log.d(TAG, "Brazilian Phonk playback started: $sourceUrl")
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Error starting on prepared", e)
+                                _isPlaying.value = false
+                            }
+                        }
                     }
                 }
 
                 setOnErrorListener { _, what, extra ->
-                    Log.w(TAG, "MediaPlayer error on source $sourceUrl (what=$what, extra=$extra), attempting next source...")
-                    _isPlaying.value = false
-                    currentSourceIndex = (currentSourceIndex + 1) % AUDIO_SOURCES.size
-                    tryNextSource(context)
+                    synchronized(this@BackgroundMusicManager) {
+                        Log.w(TAG, "MediaPlayer error ($what, $extra), switching source...")
+                        isPreparing = false
+                        isPrepared = false
+                        _isPlaying.value = false
+                        cleanupPlayer()
+                    }
                     true
                 }
 
                 prepareAsync()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start Indila audio playback", e)
+            Log.e(TAG, "Failed to initialize Brazilian Phonk playback", e)
+            isPreparing = false
+            isPrepared = false
             _isPlaying.value = false
         }
     }
 
-    private fun tryNextSource(context: Context) {
-        try {
-            if (_isMusicEnabled.value && currentSourceIndex < AUDIO_SOURCES.size) {
-                val nextUrl = AUDIO_SOURCES[currentSourceIndex]
-                mediaPlayer?.reset()
-                mediaPlayer?.setDataSource(context.applicationContext, Uri.parse(nextUrl))
-                mediaPlayer?.prepareAsync()
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Fallback source error", e)
-        }
-    }
-
+    @Synchronized
     fun toggleMusic(context: Context) {
         val newState = !_isMusicEnabled.value
         _isMusicEnabled.value = newState
         prefs?.edit()?.putBoolean(KEY_MUSIC_ENABLED, newState)?.apply()
 
         if (newState) {
-            if (mediaPlayer == null) {
+            if (isPrepared && mediaPlayer != null) {
+                try {
+                    mediaPlayer?.start()
+                    _isPlaying.value = true
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error resuming player, restarting", e)
+                    startPlayback(context)
+                }
+            } else if (!isPreparing) {
                 startPlayback(context)
-            } else {
-                mediaPlayer?.start()
-                _isPlaying.value = true
             }
         } else {
             pausePlayback()
         }
     }
 
-    fun openAudiomackTrack(context: Context) {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(AuthConstants.AUDIOMACK_SONG_URL))
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not open Audiomack link", e)
-        }
-    }
-
+    @Synchronized
     fun pausePlayback() {
         try {
-            if (mediaPlayer?.isPlaying == true) {
+            if (isPrepared && mediaPlayer?.isPlaying == true) {
                 mediaPlayer?.pause()
             }
-            _isPlaying.value = false
         } catch (e: Exception) {
-            Log.w(TAG, "Error pausing playback", e)
+            Log.w(TAG, "Error in pausePlayback", e)
+        } finally {
+            _isPlaying.value = false
         }
     }
 
+    @Synchronized
     fun resumePlayback(context: Context) {
-        if (_isMusicEnabled.value) {
-            if (mediaPlayer != null) {
-                try {
+        if (!_isMusicEnabled.value) return
+
+        if (isPrepared && mediaPlayer != null) {
+            try {
+                if (mediaPlayer?.isPlaying == false) {
                     mediaPlayer?.start()
                     _isPlaying.value = true
-                } catch (_: Exception) {
-                    startPlayback(context)
                 }
-            } else {
+            } catch (e: Exception) {
+                Log.w(TAG, "Error resuming in onResume, restarting", e)
                 startPlayback(context)
             }
+        } else if (!isPreparing) {
+            startPlayback(context)
         }
     }
 
-    fun release() {
+    @Synchronized
+    private fun cleanupPlayer() {
         try {
-            mediaPlayer?.stop()
-            mediaPlayer?.release()
+            isPrepared = false
+            isPreparing = false
+            mediaPlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.stop()
+                }
+                player.reset()
+                player.release()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error in cleanupPlayer", e)
+        } finally {
             mediaPlayer = null
             _isPlaying.value = false
-        } catch (e: Exception) {
-            Log.w(TAG, "Error releasing MediaPlayer", e)
         }
+    }
+
+    @Synchronized
+    fun release() {
+        cleanupPlayer()
     }
 }
