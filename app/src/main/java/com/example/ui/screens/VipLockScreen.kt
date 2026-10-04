@@ -207,7 +207,7 @@ fun VipLockScreen(
                         errorMessage = null
                     },
                     modifier = Modifier.fillMaxWidth().testTag("input_vip_key_gate"),
-                    placeholder = { Text("Ex: anos-vip-xxx ou Zax11", color = TextMuted, fontSize = 12.sp) },
+                    placeholder = { Text("Entrez votre clé d'accès (VIP ou Admin)", color = TextMuted, fontSize = 12.sp) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = FireGold,
@@ -240,7 +240,7 @@ fun VipLockScreen(
                             errorMessage = null
                             Toast.makeText(context, "Mode VIP Activé avec succès ! ⭐", Toast.LENGTH_SHORT).show()
                         } else {
-                            errorMessage = "Clé invalide ! Le format VIP doit être anos-vip-xxx et Admin Zax11."
+                            errorMessage = "Clé d'accès incorrecte ou expirée."
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp).testTag("btn_unlock_vip_gate"),

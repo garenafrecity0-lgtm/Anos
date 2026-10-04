@@ -395,7 +395,7 @@ fun AuthScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_access_key"),
-                    placeholder = { Text("Clé VIP (anos-vip-xxx) ou Admin (Zax11)", color = TextMuted, fontSize = 12.sp) },
+                    placeholder = { Text("Entrez votre clé d'accès (VIP ou Admin)", color = TextMuted, fontSize = 12.sp) },
                     singleLine = true,
                     leadingIcon = {
                         Icon(
@@ -419,7 +419,7 @@ fun AuthScreen(
                         if (inputKey.isNotBlank()) {
                             val success = viewModel.authenticate(inputKey)
                             if (!success) {
-                                errorMessage = "Clé invalide ! Le format VIP doit être anos-vip-xxx et la clé Admin Zax11."
+                                errorMessage = "Clé d'accès incorrecte ou expirée."
                             }
                         }
                     }),
@@ -450,7 +450,7 @@ fun AuthScreen(
                         }
                         val success = viewModel.authenticate(inputKey)
                         if (!success) {
-                            errorMessage = "Clé invalide ! Le format VIP doit être anos-vip-xxx et la clé Admin Zax11."
+                            errorMessage = "Clé d'accès incorrecte ou expirée."
                         }
                     },
                     shape = RoundedCornerShape(12.dp),

@@ -1,11 +1,13 @@
 package com.example.util
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import com.example.data.model.AuthConstants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,11 +17,15 @@ object BackgroundMusicManager {
     private const val TAG = "BackgroundMusicManager"
     private const val PREFS_NAME = "sensifire_music_prefs"
     private const val KEY_MUSIC_ENABLED = "bg_music_enabled"
-    private const val KEY_MUSIC_VOLUME = "bg_music_volume"
 
-    // High quality gaming/cinematic audio stream fallback
-    private const val AUDIO_STREAM_URL = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=epic-dramatic-action-trailer-115984.mp3"
+    // Direct streaming sources for Indila - Tourner dans le vide
+    private val AUDIO_SOURCES = listOf(
+        "https://archive.org/download/IndilaTournerDansLeVide/Indila%20-%20Tourner%20Dans%20Le%20Vide.mp3",
+        "https://raw.githubusercontent.com/sensifire-assets/audio/main/indila_tourner_dans_le_vide.mp3",
+        "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3"
+    )
 
+    private var currentSourceIndex = 0
     private var mediaPlayer: MediaPlayer? = null
     private var prefs: SharedPreferences? = null
 
@@ -29,7 +35,7 @@ object BackgroundMusicManager {
     private val _isMusicEnabled = MutableStateFlow(true)
     val isMusicEnabled: StateFlow<Boolean> = _isMusicEnabled.asStateFlow()
 
-    private val _currentTrackTitle = MutableStateFlow("Indila - Tourner Dans Le Vide (Gaming Edit)")
+    private val _currentTrackTitle = MutableStateFlow("Indila - Tourner Dans Le Vide")
     val currentTrackTitle: StateFlow<String> = _currentTrackTitle.asStateFlow()
 
     fun initialize(context: Context) {
@@ -44,43 +50,59 @@ object BackgroundMusicManager {
     }
 
     fun startPlayback(context: Context) {
+        if (currentSourceIndex >= AUDIO_SOURCES.size) {
+            currentSourceIndex = 0
+        }
+        val sourceUrl = AUDIO_SOURCES[currentSourceIndex]
+
         try {
-            if (mediaPlayer == null) {
-                mediaPlayer = MediaPlayer().apply {
-                    setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .build()
-                    )
-                    isLooping = true
-                    setVolume(0.5f, 0.5f)
+            mediaPlayer?.release()
+            mediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+                isLooping = true
+                setVolume(0.6f, 0.6f)
 
-                    setDataSource(context.applicationContext, Uri.parse(AUDIO_STREAM_URL))
+                setDataSource(context.applicationContext, Uri.parse(sourceUrl))
 
-                    setOnPreparedListener { mp ->
-                        if (_isMusicEnabled.value) {
-                            mp.start()
-                            _isPlaying.value = true
-                            Log.d(TAG, "Background music playback started successfully.")
-                        }
+                setOnPreparedListener { mp ->
+                    if (_isMusicEnabled.value) {
+                        mp.start()
+                        _isPlaying.value = true
+                        Log.d(TAG, "Indila - Tourner Dans Le Vide playback started successfully from $sourceUrl")
                     }
-
-                    setOnErrorListener { _, what, extra ->
-                        Log.w(TAG, "MediaPlayer error: what=$what, extra=$extra")
-                        _isPlaying.value = false
-                        true
-                    }
-
-                    prepareAsync()
                 }
-            } else if (!mediaPlayer!!.isPlaying && _isMusicEnabled.value) {
-                mediaPlayer?.start()
-                _isPlaying.value = true
+
+                setOnErrorListener { _, what, extra ->
+                    Log.w(TAG, "MediaPlayer error on source $sourceUrl (what=$what, extra=$extra), attempting next source...")
+                    _isPlaying.value = false
+                    currentSourceIndex = (currentSourceIndex + 1) % AUDIO_SOURCES.size
+                    tryNextSource(context)
+                    true
+                }
+
+                prepareAsync()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start background music", e)
+            Log.e(TAG, "Failed to start Indila audio playback", e)
             _isPlaying.value = false
+        }
+    }
+
+    private fun tryNextSource(context: Context) {
+        try {
+            if (_isMusicEnabled.value && currentSourceIndex < AUDIO_SOURCES.size) {
+                val nextUrl = AUDIO_SOURCES[currentSourceIndex]
+                mediaPlayer?.reset()
+                mediaPlayer?.setDataSource(context.applicationContext, Uri.parse(nextUrl))
+                mediaPlayer?.prepareAsync()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Fallback source error", e)
         }
     }
 
@@ -98,6 +120,15 @@ object BackgroundMusicManager {
             }
         } else {
             pausePlayback()
+        }
+    }
+
+    fun openAudiomackTrack(context: Context) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(AuthConstants.AUDIOMACK_SONG_URL))
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not open Audiomack link", e)
         }
     }
 

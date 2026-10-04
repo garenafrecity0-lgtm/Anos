@@ -490,7 +490,7 @@ fun MainSensiApp(viewModel: SensiViewModel) {
             },
             text = {
                 Text(
-                    "Voulez-vous vous déconnecter pour entrer une autre clé d'accès (VIP, Admin Zax11 ou Client) ?",
+                    "Voulez-vous vous déconnecter pour changer de clé d'accès (VIP, Admin ou Client) ?",
                     color = TextSecondary,
                     fontSize = 13.sp
                 )
