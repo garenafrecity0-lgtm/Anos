@@ -1,7 +1,5 @@
 package com.example
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -9,129 +7,88 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.MusicOff
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material.icons.outlined.TouchApp
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Quiz
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.UserRole
-import com.example.ui.screens.AuthScreen
-import com.example.ui.screens.DpiGuideScreen
-import com.example.ui.screens.FavoritesScreen
-import com.example.ui.screens.FireButtonSimulatorScreen
-import com.example.ui.screens.GeneratorScreen
-import com.example.ui.screens.TouchSmoothingScreen
-import com.example.ui.screens.VipLockScreen
-import com.example.ui.theme.AppThemeMode
-import com.example.ui.theme.FireCrimson
-import com.example.ui.theme.FireGold
-import com.example.ui.theme.FireOrange
-import com.example.ui.theme.MyApplicationTheme
-import com.example.ui.theme.SafeGreen
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.viewmodel.SensiViewModel
-import com.example.util.BackgroundMusicManager
+import com.example.ui.components.PythonTopBar
+import com.example.ui.screens.CheatSheetScreen
+import com.example.ui.screens.CoursesListScreen
+import com.example.ui.screens.LessonDetailScreen
+import com.example.ui.screens.PlaygroundScreen
+import com.example.ui.screens.ProfileScreen
+import com.example.ui.screens.QuizScreen
+import com.example.ui.theme.AnosPyTheme
+import com.example.ui.theme.IdeBackground
+import com.example.ui.theme.IdeBorder
+import com.example.ui.theme.IdeSurface
+import com.example.ui.theme.PythonGold
+import com.example.ui.theme.TextMutedGray
+import com.example.ui.viewmodel.PythonAppViewModel
 
-enum class SensiNavTab(
+enum class AnosPyNavTab(
     val title: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
-    val isVipOnly: Boolean,
     val testTag: String
 ) {
-    GENERATOR("Générateur", Icons.Filled.Tune, Icons.Outlined.Tune, false, "tab_generator"),
-    SMOOTHING("Lissage ⭐", Icons.Filled.TouchApp, Icons.Outlined.TouchApp, true, "tab_smoothing"),
-    SIMULATOR("Bouton & Drag ⭐", Icons.Filled.SportsEsports, Icons.Outlined.SportsEsports, true, "tab_simulator"),
-    FAVORITES("Favoris", Icons.Filled.Bookmark, Icons.Outlined.BookmarkBorder, false, "tab_favorites"),
-    GUIDE("Tuto DPI", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook, false, "tab_guide")
+    COURSES("Cours", Icons.Filled.School, Icons.Outlined.School, "tab_courses"),
+    QUIZZES("Quizz", Icons.Filled.Quiz, Icons.Outlined.Quiz, "tab_quizzes"),
+    PLAYGROUND("Bac à Sable", Icons.Filled.Code, Icons.Outlined.Code, "tab_playground"),
+    CHEATSHEET("Memento", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook, "tab_cheatsheet"),
+    PROFILE("Profil", Icons.Filled.Person, Icons.Outlined.Person, "tab_profile")
 }
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: SensiViewModel by viewModels()
+    private val viewModel: PythonAppViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        BackgroundMusicManager.initialize(this)
         enableEdgeToEdge()
         setContent {
-            val currentAppTheme by viewModel.currentAppTheme.collectAsState()
-
-            MyApplicationTheme(appThemeMode = currentAppTheme) {
+            AnosPyTheme {
                 val context = LocalContext.current
-                val toastMessage by viewModel.copySuccessMessage.collectAsState()
-                val isAuthenticated by viewModel.isAuthenticated.collectAsState()
+                val toastMessage by viewModel.toastMessage.collectAsState()
 
                 LaunchedEffect(toastMessage) {
                     toastMessage?.let {
@@ -140,231 +97,74 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                if (!isAuthenticated) {
-                    AuthScreen(viewModel = viewModel)
-                } else {
-                    MainSensiApp(viewModel = viewModel)
-                }
+                MainAnosPyApp(viewModel = viewModel)
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        BackgroundMusicManager.resumePlayback(this)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        BackgroundMusicManager.pausePlayback()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        BackgroundMusicManager.release()
     }
 }
 
 @Composable
-fun MainSensiApp(viewModel: SensiViewModel) {
-    val context = LocalContext.current
-    var selectedTab by rememberSaveable { mutableStateOf(SensiNavTab.GENERATOR) }
-    val userRole by viewModel.userRole.collectAsState()
-    val currentTheme by viewModel.currentAppTheme.collectAsState()
-    val isMusicPlaying by BackgroundMusicManager.isPlaying.collectAsState()
-    val isMusicEnabled by BackgroundMusicManager.isMusicEnabled.collectAsState()
-
-    var showLogoutConfirm by remember { mutableStateOf(false) }
-    var showThemeDialog by remember { mutableStateOf(false) }
-
-    // Music pulse animation
-    val infiniteTransition = rememberInfiniteTransition(label = "musicPulse")
-    val musicScale by infiniteTransition.animateFloat(
-        initialValue = 0.92f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "musicIconScale"
-    )
+fun MainAnosPyApp(viewModel: PythonAppViewModel) {
+    var selectedTab by rememberSaveable { mutableStateOf(AnosPyNavTab.COURSES) }
+    val progress by viewModel.userProgress.collectAsState()
+    val selectedLesson by viewModel.selectedLesson.collectAsState()
 
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        containerColor = MaterialTheme.colorScheme.background,
+            .background(IdeBackground),
+        containerColor = IdeBackground,
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline)
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Shield,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Text(
-                        text = "Anos Sensi V2",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black
-                    )
-
-                    // Role Badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(
-                                when (userRole) {
-                                    UserRole.ADMIN -> FireCrimson.copy(alpha = 0.25f)
-                                    UserRole.VIP -> FireGold.copy(alpha = 0.25f)
-                                    UserRole.CLIENT -> MaterialTheme.colorScheme.surfaceVariant
-                                }
-                            )
-                            .border(
-                                1.dp,
-                                when (userRole) {
-                                    UserRole.ADMIN -> FireCrimson
-                                    UserRole.VIP -> FireGold
-                                    UserRole.CLIENT -> MaterialTheme.colorScheme.outline
-                                },
-                                RoundedCornerShape(6.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = userRole.badge,
-                            color = when (userRole) {
-                                UserRole.ADMIN -> FireCrimson
-                                UserRole.VIP -> FireGold
-                                UserRole.CLIENT -> TextSecondary
-                            },
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Music Toggle Button (Brazilian Phonk)
-                    IconButton(
-                        onClick = {
-                            BackgroundMusicManager.toggleMusic(context)
-                            val status = if (!isMusicEnabled) "🇧🇷 Brazilian Phonk activé !" else "🔇 Musique en pause"
-                            Toast.makeText(context, status, Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(if (isMusicEnabled) SafeGreen.copy(alpha = 0.15f) else Color.Transparent)
-                            .testTag("btn_toggle_bg_music")
-                    ) {
-                        Icon(
-                            imageVector = if (isMusicEnabled) Icons.Default.MusicNote else Icons.Default.MusicOff,
-                            contentDescription = "Musique d'ambiance",
-                            tint = if (isMusicEnabled) SafeGreen else TextMuted,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .then(if (isMusicEnabled && isMusicPlaying) Modifier.scale(musicScale) else Modifier)
-                        )
-                    }
-
-                    // Theme picker button
-                    IconButton(
-                        onClick = { showThemeDialog = true },
-                        modifier = Modifier.size(32.dp).testTag("btn_theme_action")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Palette,
-                            contentDescription = "Changer de Thème",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = { showLogoutConfirm = true },
-                        modifier = Modifier.size(32.dp).testTag("btn_logout_action")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Changer de clé / Déconnexion",
-                            tint = TextMuted,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-            }
+            PythonTopBar(progress = progress)
         },
         bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
-            ) {
-                NavigationBar(
+            // Only show bottom navigation when not viewing a full lesson detail screen
+            if (selectedLesson == null) {
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp)),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
                 ) {
-                    SensiNavTab.entries.forEach { tab ->
-                        val isSelected = selectedTab == tab
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = { selectedTab = tab },
-                            icon = {
-                                Icon(
-                                    imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                    contentDescription = tab.title,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = tab.title,
-                                    fontSize = 8.5.sp,
-                                    maxLines = 1,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = TextMuted,
-                                unselectedTextColor = TextMuted,
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                            ),
-                            modifier = Modifier.testTag(tab.testTag)
-                        )
+                    NavigationBar(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(IdeSurface)
+                            .border(1.dp, IdeBorder, RoundedCornerShape(20.dp)),
+                        containerColor = IdeSurface,
+                        tonalElevation = 0.dp
+                    ) {
+                        AnosPyNavTab.entries.forEach { tab ->
+                            val isSelected = selectedTab == tab
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = { selectedTab = tab },
+                                icon = {
+                                    Icon(
+                                        imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                        contentDescription = tab.title,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        text = tab.title,
+                                        fontSize = 9.sp,
+                                        maxLines = 1,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = PythonGold,
+                                    selectedTextColor = PythonGold,
+                                    unselectedIconColor = TextMutedGray,
+                                    unselectedTextColor = TextMutedGray,
+                                    indicatorColor = PythonGold.copy(alpha = 0.15f)
+                                ),
+                                modifier = Modifier.testTag(tab.testTag)
+                            )
+                        }
                     }
                 }
             }
@@ -375,143 +175,23 @@ fun MainSensiApp(viewModel: SensiViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Crossfade(targetState = selectedTab, label = "tabScreenTransition") { tab ->
-                when (tab) {
-                    SensiNavTab.GENERATOR -> GeneratorScreen(
-                        viewModel = viewModel,
-                        onNavigateToSimulator = { selectedTab = SensiNavTab.SIMULATOR }
-                    )
-                    SensiNavTab.SMOOTHING -> {
-                        if (userRole.isVipOrAdmin) {
-                            TouchSmoothingScreen(viewModel = viewModel)
-                        } else {
-                            VipLockScreen(
-                                featureTitle = "Moteur de Lissage Tactile & Anti-Jitter",
-                                featureDescription = "L'algorithme d'interpolation et de filtrage haute fréquence (Hz) pour stabiliser le drag One-Tap est réservé aux membres VIP.",
-                                viewModel = viewModel,
-                                onBackToFree = { selectedTab = SensiNavTab.GENERATOR }
-                            )
-                        }
+            val currentLesson = selectedLesson
+            if (currentLesson != null) {
+                LessonDetailScreen(
+                    lesson = currentLesson,
+                    viewModel = viewModel
+                )
+            } else {
+                Crossfade(targetState = selectedTab, label = "tabScreenTransition") { tab ->
+                    when (tab) {
+                        AnosPyNavTab.COURSES -> CoursesListScreen(viewModel = viewModel)
+                        AnosPyNavTab.QUIZZES -> QuizScreen(viewModel = viewModel)
+                        AnosPyNavTab.PLAYGROUND -> PlaygroundScreen(viewModel = viewModel)
+                        AnosPyNavTab.CHEATSHEET -> CheatSheetScreen(viewModel = viewModel)
+                        AnosPyNavTab.PROFILE -> ProfileScreen(viewModel = viewModel)
                     }
-                    SensiNavTab.SIMULATOR -> {
-                        if (userRole.isVipOrAdmin) {
-                            FireButtonSimulatorScreen(
-                                viewModel = viewModel,
-                                onBack = { selectedTab = SensiNavTab.GENERATOR }
-                            )
-                        } else {
-                            VipLockScreen(
-                                featureTitle = "Simulateur Bouton & Drag One-Tap",
-                                featureDescription = "Le banc d'essai interactif de tir, les cibles mobiles et les guides de trajectoire de Headshot sont réservés aux membres VIP.",
-                                viewModel = viewModel,
-                                onBackToFree = { selectedTab = SensiNavTab.GENERATOR }
-                            )
-                        }
-                    }
-                    SensiNavTab.FAVORITES -> FavoritesScreen(
-                        viewModel = viewModel,
-                        onNavigateToGenerator = { selectedTab = SensiNavTab.GENERATOR }
-                    )
-                    SensiNavTab.GUIDE -> DpiGuideScreen()
                 }
             }
         }
-    }
-
-    if (showThemeDialog) {
-        AlertDialog(
-            onDismissRequest = { showThemeDialog = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("Thèmes de l'Application", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "Choisissez l'ambiance visuelle d'Anos Sensi V2 :",
-                        color = TextSecondary,
-                        fontSize = 12.sp
-                    )
-
-                    AppThemeMode.entries.forEach { theme ->
-                        val isSelected = currentTheme == theme
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
-                                .border(
-                                    1.dp,
-                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .clickable {
-                                    viewModel.setAppTheme(theme)
-                                    showThemeDialog = false
-                                }
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text(theme.icon, fontSize = 20.sp)
-                                Column {
-                                    Text(theme.title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text(theme.subtitle, color = TextSecondary, fontSize = 10.sp)
-                                }
-                            }
-                            if (isSelected) {
-                                Icon(Icons.Default.Check, contentDescription = "Sélectionné", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showThemeDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("Fermer")
-                }
-            }
-        )
-    }
-
-    if (showLogoutConfirm) {
-        AlertDialog(
-            onDismissRequest = { showLogoutConfirm = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = {
-                Text("Changer de Clé d'Accès", color = TextPrimary, fontWeight = FontWeight.Bold)
-            },
-            text = {
-                Text(
-                    "Voulez-vous vous déconnecter pour changer de clé d'accès (VIP, Admin ou Client) ?",
-                    color = TextSecondary,
-                    fontSize = 13.sp
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showLogoutConfirm = false
-                        viewModel.logout()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = FireOrange),
-                    modifier = Modifier.testTag("btn_confirm_logout")
-                ) {
-                    Text("Se Déconnecter")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutConfirm = false }) {
-                    Text("Annuler", color = TextMuted)
-                }
-            }
-        )
     }
 }
