@@ -414,6 +414,16 @@ fun LessonDetailScreen(
             }
         }
 
+        val context = androidx.compose.ui.platform.LocalContext.current
+        Button(
+            onClick = { viewModel.openWhatsAppContact(context) },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth().height(46.dp).testTag("btn_ask_whatsapp_lesson")
+        ) {
+            Text("💬 Poser une question sur WhatsApp (+234 07071776576)", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        }
+
         Spacer(modifier = Modifier.height(70.dp))
     }
 }

@@ -265,9 +265,72 @@ fun ProfileScreen(
             }
         }
 
+        // WhatsApp Contact Card
+        item {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            Card(
+                colors = CardDefaults.cardColors(containerColor = IdeSurface),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.5.dp, Color(0xFF25D366).copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF25D366).copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("💬", fontSize = 20.sp)
+                        }
+
+                        Column {
+                            Text(
+                                text = "Contactez le Formateur Anos",
+                                color = TextWhite,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "WhatsApp Direct : +234 07071776576",
+                                color = Color(0xFF25D366),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Une question sur un cours Python ou un concept de Cybersécurité ? Échangez directement avec le formateur sur WhatsApp pour une aide rapide.",
+                        color = TextMutedGray,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
+                    )
+
+                    Button(
+                        onClick = { viewModel.openWhatsAppContact(context) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth().height(46.dp)
+                    ) {
+                        Text("Ouvrir WhatsApp (+234 07071776576) 💬", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+
         // Reset progress option
         item {
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             OutlinedButton(
                 onClick = { showResetDialog = true },
                 shape = RoundedCornerShape(10.dp),

@@ -133,4 +133,17 @@ data class UserProgress(
         val previousLesson = allLessons.find { it.number == lessonNumber - 1 }
         return previousLesson != null && completedLessonIds.contains(previousLesson.id)
     }
+
+    fun isCyberLessonUnlocked(lessonNumber: Int, allCyberLessons: List<com.example.data.model.CyberLesson>): Boolean {
+        if (lessonNumber == 1) return true
+        val previousLesson = allCyberLessons.find { it.number == lessonNumber - 1 }
+        return previousLesson != null && completedLessonIds.contains(previousLesson.id)
+    }
+
+    fun completedPythonCount(allLessons: List<PythonLesson>): Int =
+        allLessons.count { completedLessonIds.contains(it.id) }
+
+    fun completedCyberCount(allCyberLessons: List<com.example.data.model.CyberLesson>): Int =
+        allCyberLessons.count { completedLessonIds.contains(it.id) }
 }
+

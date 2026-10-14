@@ -1,6 +1,6 @@
 {
   "name": "Anos py",
-  "description": "Anos py - Apprenez le langage Python de débutant total à expert avec des cours détaillés, des quiz interactifs, un memento de syntaxe et un simulateur de code.",
+  "description": "Anos py - Apprenez le langage Python de débutant total à expert et la Cybersécurité de A à Z avec des cours détaillés, des quiz interactifs, un memento de syntaxe et un simulateur de code.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

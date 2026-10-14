@@ -40,6 +40,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,17 +95,19 @@ fun QuizScreen(
         )
     } else if (isQuizFinished) {
         // Results State
+        val selectedLesson by viewModel.selectedLesson.collectAsState()
+        val selectedCyberLesson by viewModel.selectedCyberLesson.collectAsState()
+        val exitLabel = when {
+            selectedLesson != null -> "Retourner au Cours #${selectedLesson?.number} ❯"
+            selectedCyberLesson != null -> "Retourner au Cours Cyber #${selectedCyberLesson?.number} ❯"
+            else -> "Retour à la liste des Quiz"
+        }
         QuizResultView(
             total = questions.size,
             correct = correctCount,
             quizTitle = quizTitle,
-            onRetry = {
-                if (quizTitle.contains("Défi")) {
-                    viewModel.startGlobalChallengeQuiz()
-                } else {
-                    viewModel.exitQuiz()
-                }
-            },
+            exitButtonLabel = exitLabel,
+            onRetry = { viewModel.retryCurrentQuiz() },
             onExit = { viewModel.exitQuiz() },
             modifier = modifier
         )
@@ -441,66 +446,202 @@ fun QuizHubView(
             }
         }
 
-        // Section Title: Lesson Quizzes
-        Text(
-            text = "Quizz par Leçon (${viewModel.allLessons.size})",
-            color = TextWhite,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
-        )
+        // Section Switcher between Python and Cyber Quizzes
+        var selectedCategory by rememberSaveable { mutableStateOf(0) }
+        val context = androidx.compose.ui.platform.LocalContext.current
 
-        // List of all lessons with quiz buttons
-        viewModel.allLessons.forEach { lesson ->
-            val isUnlocked = viewModel.isLessonUnlocked(lesson)
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isUnlocked) IdeSurface else IdeSurface.copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(14.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        1.dp,
-                        if (isUnlocked) IdeBorder else IdeBorder.copy(alpha = 0.4f),
-                        RoundedCornerShape(14.dp)
-                    )
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selectedCategory == 0) PythonGold else IdeSurfaceVariant)
+                    .border(1.dp, if (selectedCategory == 0) PythonGold else IdeBorder, RoundedCornerShape(10.dp))
+                    .clickable { selectedCategory = 0 }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
+                Text(
+                    text = "🐍 Quizz Python (${viewModel.allLessons.size})",
+                    color = if (selectedCategory == 0) Color.Black else TextWhite,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selectedCategory == 1) Color(0xFF00E5FF) else IdeSurfaceVariant)
+                    .border(1.dp, if (selectedCategory == 1) Color(0xFF00E5FF) else IdeBorder, RoundedCornerShape(10.dp))
+                    .clickable { selectedCategory = 1 }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "🛡️ Quizz Cyber (${viewModel.allCyberLessons.size})",
+                    color = if (selectedCategory == 1) Color.Black else TextWhite,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+            }
+        }
+
+        if (selectedCategory == 0) {
+            // Python Quizzes
+            Text(
+                text = "Quizz par Leçon Python (${viewModel.allLessons.size})",
+                color = TextWhite,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            viewModel.allLessons.forEach { lesson ->
+                val isUnlocked = viewModel.isLessonUnlocked(lesson)
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isUnlocked) IdeSurface else IdeSurface.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .border(
+                            1.dp,
+                            if (isUnlocked) IdeBorder else IdeBorder.copy(alpha = 0.4f),
+                            RoundedCornerShape(14.dp)
+                        )
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Cours #${lesson.number} • ${lesson.title}",
-                            color = if (isUnlocked) TextWhite else TextWhite.copy(alpha = 0.5f),
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (isUnlocked) "${lesson.quiz.size} questions disponibles" else "🔒 Débloquez le Cours #${lesson.number} d'abord",
-                            color = if (isUnlocked) TextMutedGray else Color(0xFFFFB74D),
-                            fontSize = 11.sp
-                        )
-                    }
-
-                    Button(
-                        onClick = { viewModel.startLessonQuiz(lesson) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isUnlocked) PythonBlue else IdeSurfaceVariant
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(36.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = if (isUnlocked) "Quiz" else "🔒 Bloqué",
-                            color = if (isUnlocked) Color.White else TextMutedGray,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Cours #${lesson.number} • ${lesson.title}",
+                                color = if (isUnlocked) TextWhite else TextWhite.copy(alpha = 0.5f),
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (isUnlocked) "${lesson.quiz.size} questions disponibles" else "🔒 Débloquez le Cours #${lesson.number} d'abord",
+                                color = if (isUnlocked) TextMutedGray else Color(0xFFFFB74D),
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = { viewModel.startLessonQuiz(lesson) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isUnlocked) PythonBlue else IdeSurfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text(
+                                text = if (isUnlocked) "Quiz" else "🔒 Bloqué",
+                                color = if (isUnlocked) Color.White else TextMutedGray,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
+                }
+            }
+        } else {
+            // Cyber Quizzes
+            Text(
+                text = "Quizz de Cybersécurité (${viewModel.allCyberLessons.size})",
+                color = Color(0xFF00E5FF),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            viewModel.allCyberLessons.forEach { lesson ->
+                val isUnlocked = viewModel.isCyberLessonUnlocked(lesson)
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isUnlocked) IdeSurface else IdeSurface.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            1.dp,
+                            if (isUnlocked) IdeBorder else IdeBorder.copy(alpha = 0.4f),
+                            RoundedCornerShape(14.dp)
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Cyber #${lesson.number} • ${lesson.title}",
+                                color = if (isUnlocked) TextWhite else TextWhite.copy(alpha = 0.5f),
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (isUnlocked) "${lesson.quiz.size} questions disponibles" else "🔒 Débloquez le Cours Cyber #${lesson.number} d'abord",
+                                color = if (isUnlocked) TextMutedGray else Color(0xFFFFB74D),
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = { viewModel.startCyberQuiz(lesson) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isUnlocked) Color(0xFF00E5FF) else IdeSurfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text(
+                                text = if (isUnlocked) "Quiz" else "🔒 Bloqué",
+                                color = if (isUnlocked) Color.Black else TextMutedGray,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // WhatsApp Help Card
+        Card(
+            colors = CardDefaults.cardColors(containerColor = IdeSurface),
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color(0xFF25D366).copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Une question sur les quizz ?", color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Contactez Anos sur WhatsApp (+234 07071776576)", color = Color(0xFF25D366), fontSize = 11.sp)
+                }
+                Button(
+                    onClick = { viewModel.openWhatsAppContact(context) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("WhatsApp", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
             }
         }
@@ -514,11 +655,12 @@ fun QuizResultView(
     total: Int,
     correct: Int,
     quizTitle: String,
+    exitButtonLabel: String = "Retour à la liste des cours",
     onRetry: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val percentage = (correct.toFloat() / total * 100).toInt()
+    val percentage = if (total > 0) (correct.toFloat() / total * 100).toInt() else 0
     val isSuccess = percentage >= 70
 
     Column(
@@ -617,7 +759,7 @@ fun QuizResultView(
             border = androidx.compose.foundation.BorderStroke(1.dp, IdeBorder),
             modifier = Modifier.fillMaxWidth().height(48.dp)
         ) {
-            Text("Retour à la liste des cours", color = TextWhite)
+            Text(exitButtonLabel, color = TextWhite)
         }
     }
 }

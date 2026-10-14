@@ -1,8 +1,14 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.model.CyberLesson
+import com.example.data.model.CyberLevel
 import com.example.data.model.PythonCheatSheetItem
 import com.example.data.model.PythonLesson
 import com.example.data.model.PythonLevel
@@ -25,10 +31,11 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
 
     val userProgress: StateFlow<UserProgress> = repository.userProgress
     val allLessons: List<PythonLesson> = repository.allLessons
+    val allCyberLessons: List<CyberLesson> = repository.allCyberLessons
     val playgroundSnippets: List<PythonPlaygroundSnippet> = repository.playgroundSnippets
     val cheatSheetItems: List<PythonCheatSheetItem> = repository.cheatSheetItems
 
-    // Filter & Search
+    // Filter & Search Python
     private val _selectedLevel = MutableStateFlow<PythonLevel?>(null)
     val selectedLevel: StateFlow<PythonLevel?> = _selectedLevel.asStateFlow()
 
@@ -53,6 +60,31 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
     // Current Lesson Detail
     private val _selectedLesson = MutableStateFlow<PythonLesson?>(null)
     val selectedLesson: StateFlow<PythonLesson?> = _selectedLesson.asStateFlow()
+
+    // Cyber Security Screen State
+    private val _selectedCyberLevel = MutableStateFlow<CyberLevel?>(null)
+    val selectedCyberLevel: StateFlow<CyberLevel?> = _selectedCyberLevel.asStateFlow()
+
+    private val _cyberSearchQuery = MutableStateFlow("")
+    val cyberSearchQuery: StateFlow<String> = _cyberSearchQuery.asStateFlow()
+
+    val filteredCyberLessons: StateFlow<List<CyberLesson>> = combine(
+        _selectedCyberLevel,
+        _cyberSearchQuery
+    ) { level, query ->
+        allCyberLessons.filter { lesson ->
+            val matchesLevel = level == null || lesson.level == level
+            val matchesQuery = query.isBlank() ||
+                lesson.title.contains(query, ignoreCase = true) ||
+                lesson.subtitle.contains(query, ignoreCase = true) ||
+                lesson.summary.contains(query, ignoreCase = true) ||
+                lesson.sections.any { it.title.contains(query, ignoreCase = true) || it.content.contains(query, ignoreCase = true) }
+            matchesLevel && matchesQuery
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), allCyberLessons)
+
+    private val _selectedCyberLesson = MutableStateFlow<CyberLesson?>(null)
+    val selectedCyberLesson: StateFlow<CyberLesson?> = _selectedCyberLesson.asStateFlow()
 
     // Quiz Session State
     private val _isQuizActive = MutableStateFlow(false)
@@ -135,6 +167,44 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    // Cyber Security Methods
+    fun filterByCyberLevel(level: CyberLevel?) {
+        _selectedCyberLevel.value = level
+    }
+
+    fun setCyberSearchQuery(query: String) {
+        _cyberSearchQuery.value = query
+    }
+
+    fun isCyberLessonUnlocked(lesson: CyberLesson): Boolean {
+        return userProgress.value.isCyberLessonUnlocked(lesson.number, allCyberLessons)
+    }
+
+    fun openCyberLesson(lesson: CyberLesson) {
+        if (!isCyberLessonUnlocked(lesson)) {
+            val prevNumber = lesson.number - 1
+            _toastMessage.value = "🔒 Chapitre verrouillé ! Terminez d'abord le Cours #$prevNumber pour débloquer la suite."
+            return
+        }
+        _selectedCyberLesson.value = lesson
+    }
+
+    fun closeCyberLesson() {
+        _selectedCyberLesson.value = null
+    }
+
+    fun markCurrentCyberLessonCompleted() {
+        val lesson = _selectedCyberLesson.value ?: return
+        repository.markLessonCompleted(lesson.id)
+        val nextNumber = lesson.number + 1
+        val nextLesson = allCyberLessons.find { it.number == nextNumber }
+        if (nextLesson != null) {
+            _toastMessage.value = "🎉 Cours Cyber #${lesson.number} validé ! Le Cours #$nextNumber est désormais débloqué ! 🔓"
+        } else {
+            _toastMessage.value = "🛡️ Félicitations ! Vous avez complété tous les cours de Cybersécurité !"
+        }
+    }
+
     fun toggleBookmark(lessonId: String) {
         val isNowBookmarked = repository.toggleBookmark(lessonId)
         _toastMessage.value = if (isNowBookmarked) "⭐ Leçon ajoutée aux favoris !" else "Leçon retirée des favoris"
@@ -146,9 +216,32 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
             _toastMessage.value = "🔒 Chapitre verrouillé ! Complétez le cours précédent d'abord."
             return
         }
-        if (lesson.quiz.isEmpty()) return
+        if (lesson.quiz.isEmpty()) {
+            _toastMessage.value = "Aucun quiz disponible pour ce cours."
+            return
+        }
         _activeQuizLessonId.value = lesson.id
         _quizTitle.value = "Quiz : ${lesson.title}"
+        _quizQuestions.value = lesson.quiz
+        _currentQuestionIndex.value = 0
+        _selectedAnswerIndex.value = null
+        _isAnswerSubmitted.value = false
+        _quizCorrectCount.value = 0
+        _isQuizFinished.value = false
+        _isQuizActive.value = true
+    }
+
+    fun startCyberQuiz(lesson: CyberLesson) {
+        if (!isCyberLessonUnlocked(lesson)) {
+            _toastMessage.value = "🔒 Chapitre verrouillé ! Complétez le cours précédent d'abord."
+            return
+        }
+        if (lesson.quiz.isEmpty()) {
+            _toastMessage.value = "Aucun quiz disponible pour ce cours."
+            return
+        }
+        _activeQuizLessonId.value = lesson.id
+        _quizTitle.value = "Quiz Cyber : ${lesson.title}"
         _quizQuestions.value = lesson.quiz
         _currentQuestionIndex.value = 0
         _selectedAnswerIndex.value = null
@@ -161,7 +254,7 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
     fun startGlobalChallengeQuiz() {
         val questions = repository.getRandomQuizChallenge(10)
         _activeQuizLessonId.value = null
-        _quizTitle.value = "Grand Défi Python (10 Questions)"
+        _quizTitle.value = "Grand Défi Python & Cybersécurité (10 Questions)"
         _quizQuestions.value = questions
         _currentQuestionIndex.value = 0
         _selectedAnswerIndex.value = null
@@ -215,11 +308,44 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    val activeQuizLessonId: StateFlow<String?> = _activeQuizLessonId.asStateFlow()
+
     fun exitQuiz() {
         _isQuizActive.value = false
         _isQuizFinished.value = false
         _selectedAnswerIndex.value = null
         _isAnswerSubmitted.value = false
+    }
+
+    fun retryCurrentQuiz() {
+        val lessonId = _activeQuizLessonId.value
+        if (lessonId == null) {
+            startGlobalChallengeQuiz()
+        } else {
+            val pyLesson = allLessons.find { it.id == lessonId }
+            val cyLesson = allCyberLessons.find { it.id == lessonId }
+            if (pyLesson != null) {
+                _quizTitle.value = "Quiz : ${pyLesson.title}"
+                _quizQuestions.value = pyLesson.quiz
+                _currentQuestionIndex.value = 0
+                _selectedAnswerIndex.value = null
+                _isAnswerSubmitted.value = false
+                _quizCorrectCount.value = 0
+                _isQuizFinished.value = false
+                _isQuizActive.value = true
+            } else if (cyLesson != null) {
+                _quizTitle.value = "Quiz Cyber : ${cyLesson.title}"
+                _quizQuestions.value = cyLesson.quiz
+                _currentQuestionIndex.value = 0
+                _selectedAnswerIndex.value = null
+                _isAnswerSubmitted.value = false
+                _quizCorrectCount.value = 0
+                _isQuizFinished.value = false
+                _isQuizActive.value = true
+            } else {
+                startGlobalChallengeQuiz()
+            }
+        }
     }
 
     // Playground Actions
@@ -237,9 +363,8 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _isPlaygroundRunning.value = true
             _playgroundOutput.value = "⚙️ [Python 3.12] Exécution du script en cours..."
-            delay(500) // Realistic interactive compile/run feel
+            delay(500)
             
-            // Check if code matches currently loaded snippet or custom print simulation
             val currentSnippet = _currentPlaygroundSnippet.value
             val code = _playgroundCode.value.trim()
             
@@ -269,6 +394,28 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
             _playgroundOutput.value = output
             _isPlaygroundRunning.value = false
             _toastMessage.value = "▶️ Script Python exécuté avec succès !"
+        }
+    }
+
+    // WhatsApp Contact Action (+23407071776576)
+    fun openWhatsAppContact(context: Context) {
+        val phone = "2347071776576" // Nigeria format for +23407071776576
+        val message = "Bonjour Anos ! J'utilise votre application Anos py (Python & Cybersécurité) et je souhaite vous contacter."
+        val url = "https://wa.me/$phone?text=${Uri.encode(message)}"
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val apiIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://api.whatsapp.com/send?phone=$phone&text=${Uri.encode(message)}")).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(apiIntent)
+            } catch (e2: Exception) {
+                Toast.makeText(context, "Contact WhatsApp : +234 07071776576", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

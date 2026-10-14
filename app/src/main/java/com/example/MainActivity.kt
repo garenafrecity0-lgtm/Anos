@@ -24,13 +24,14 @@ import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Quiz
-import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Quiz
-import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -54,6 +55,8 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.components.PythonTopBar
 import com.example.ui.screens.CheatSheetScreen
 import com.example.ui.screens.CoursesListScreen
+import com.example.ui.screens.CyberLessonDetailScreen
+import com.example.ui.screens.CyberSecurityScreen
 import com.example.ui.screens.LessonDetailScreen
 import com.example.ui.screens.PlaygroundScreen
 import com.example.ui.screens.ProfileScreen
@@ -72,10 +75,10 @@ enum class AnosPyNavTab(
     val unselectedIcon: ImageVector,
     val testTag: String
 ) {
-    COURSES("Cours", Icons.Filled.School, Icons.Outlined.School, "tab_courses"),
+    COURSES("Python", Icons.Filled.Code, Icons.Outlined.Code, "tab_courses"),
+    CYBER("Cyber 🛡️", Icons.Filled.Security, Icons.Outlined.Security, "tab_cyber"),
     QUIZZES("Quizz", Icons.Filled.Quiz, Icons.Outlined.Quiz, "tab_quizzes"),
-    PLAYGROUND("Bac à Sable", Icons.Filled.Code, Icons.Outlined.Code, "tab_playground"),
-    CHEATSHEET("Memento", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook, "tab_cheatsheet"),
+    PLAYGROUND("Console", Icons.Filled.Terminal, Icons.Outlined.Terminal, "tab_playground"),
     PROFILE("Profil", Icons.Filled.Person, Icons.Outlined.Person, "tab_profile")
 }
 
@@ -105,9 +108,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainAnosPyApp(viewModel: PythonAppViewModel) {
+    val context = LocalContext.current
     var selectedTab by rememberSaveable { mutableStateOf(AnosPyNavTab.COURSES) }
     val progress by viewModel.userProgress.collectAsState()
+    val isQuizActive by viewModel.isQuizActive.collectAsState()
     val selectedLesson by viewModel.selectedLesson.collectAsState()
+    val selectedCyberLesson by viewModel.selectedCyberLesson.collectAsState()
+
+    val isFullScreen = isQuizActive || selectedLesson != null || selectedCyberLesson != null
 
     Scaffold(
         modifier = Modifier
@@ -115,11 +123,14 @@ fun MainAnosPyApp(viewModel: PythonAppViewModel) {
             .background(IdeBackground),
         containerColor = IdeBackground,
         topBar = {
-            PythonTopBar(progress = progress)
+            PythonTopBar(
+                progress = progress,
+                onWhatsAppClick = { viewModel.openWhatsAppContact(context) }
+            )
         },
         bottomBar = {
-            // Only show bottom navigation when not viewing a full lesson detail screen
-            if (selectedLesson == null) {
+            // Only show bottom navigation when not viewing a lesson or active quiz
+            if (!isFullScreen) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -150,7 +161,7 @@ fun MainAnosPyApp(viewModel: PythonAppViewModel) {
                                 label = {
                                     Text(
                                         text = tab.title,
-                                        fontSize = 9.sp,
+                                        fontSize = 9.5.sp,
                                         maxLines = 1,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
@@ -175,20 +186,31 @@ fun MainAnosPyApp(viewModel: PythonAppViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            val currentLesson = selectedLesson
-            if (currentLesson != null) {
-                LessonDetailScreen(
-                    lesson = currentLesson,
-                    viewModel = viewModel
-                )
-            } else {
-                Crossfade(targetState = selectedTab, label = "tabScreenTransition") { tab ->
-                    when (tab) {
-                        AnosPyNavTab.COURSES -> CoursesListScreen(viewModel = viewModel)
-                        AnosPyNavTab.QUIZZES -> QuizScreen(viewModel = viewModel)
-                        AnosPyNavTab.PLAYGROUND -> PlaygroundScreen(viewModel = viewModel)
-                        AnosPyNavTab.CHEATSHEET -> CheatSheetScreen(viewModel = viewModel)
-                        AnosPyNavTab.PROFILE -> ProfileScreen(viewModel = viewModel)
+            when {
+                isQuizActive -> {
+                    QuizScreen(viewModel = viewModel)
+                }
+                selectedLesson != null -> {
+                    LessonDetailScreen(
+                        lesson = selectedLesson!!,
+                        viewModel = viewModel
+                    )
+                }
+                selectedCyberLesson != null -> {
+                    CyberLessonDetailScreen(
+                        lesson = selectedCyberLesson!!,
+                        viewModel = viewModel
+                    )
+                }
+                else -> {
+                    Crossfade(targetState = selectedTab, label = "tabScreenTransition") { tab ->
+                        when (tab) {
+                            AnosPyNavTab.COURSES -> CoursesListScreen(viewModel = viewModel)
+                            AnosPyNavTab.CYBER -> CyberSecurityScreen(viewModel = viewModel)
+                            AnosPyNavTab.QUIZZES -> QuizScreen(viewModel = viewModel)
+                            AnosPyNavTab.PLAYGROUND -> PlaygroundScreen(viewModel = viewModel)
+                            AnosPyNavTab.PROFILE -> ProfileScreen(viewModel = viewModel)
+                        }
                     }
                 }
             }

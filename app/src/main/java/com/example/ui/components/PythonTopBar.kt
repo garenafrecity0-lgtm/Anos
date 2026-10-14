@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,7 @@ import com.example.ui.theme.TextWhite
 @Composable
 fun PythonTopBar(
     progress: UserProgress,
+    onWhatsAppClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -104,26 +106,49 @@ fun PythonTopBar(
             }
         }
 
-        // Stats Badges (Streak & XP)
+        // Stats Badges & WhatsApp Contact Button
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            // WhatsApp Contact Button (+23407071776576)
+            if (onWhatsAppClick != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF25D366).copy(alpha = 0.18f))
+                        .border(1.dp, Color(0xFF25D366).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                        .clickable(onClick = onWhatsAppClick)
+                        .padding(horizontal = 7.dp, vertical = 4.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("💬", fontSize = 11.sp)
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "WhatsApp",
+                            color = Color(0xFF25D366),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
             // Streak
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(IdeSurfaceVariant)
                     .border(1.dp, Color(0xFFFF9800).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .padding(horizontal = 7.dp, vertical = 4.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🔥", fontSize = 12.sp)
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("🔥", fontSize = 11.sp)
+                    Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = "${progress.streakDays}j",
                         color = TextWhite,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -135,15 +160,15 @@ fun PythonTopBar(
                     .clip(RoundedCornerShape(8.dp))
                     .background(PythonGold.copy(alpha = 0.15f))
                     .border(1.dp, PythonGold.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .padding(horizontal = 7.dp, vertical = 4.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("⚡", fontSize = 12.sp)
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("⚡", fontSize = 11.sp)
+                    Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = "${progress.totalXp} XP",
+                        text = "${progress.totalXp}",
                         color = PythonGold,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }

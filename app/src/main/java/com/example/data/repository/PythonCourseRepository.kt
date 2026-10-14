@@ -30,6 +30,9 @@ class PythonCourseRepository(context: Context) {
         PythonLessonsExpert.lessons
     ).sortedBy { it.number }
 
+    val allCyberLessons: List<com.example.data.model.CyberLesson> =
+        com.example.data.generator.CyberLessonsData.lessons.sortedBy { it.number }
+
     val playgroundSnippets: List<PythonPlaygroundSnippet> = PythonPlaygroundData.snippets
     val cheatSheetItems: List<PythonCheatSheetItem> = PythonPlaygroundData.cheatSheetItems
 
@@ -50,6 +53,12 @@ class PythonCourseRepository(context: Context) {
                 scores[lesson.id] = score
             }
         }
+        allCyberLessons.forEach { lesson ->
+            val score = prefs.getInt("quiz_score_${lesson.id}", -1)
+            if (score >= 0) {
+                scores[lesson.id] = score
+            }
+        }
 
         return UserProgress(
             completedLessonIds = completed,
@@ -65,6 +74,10 @@ class PythonCourseRepository(context: Context) {
         return allLessons.find { it.id == id }
     }
 
+    fun getCyberLessonById(id: String): com.example.data.model.CyberLesson? {
+        return allCyberLessons.find { it.id == id }
+    }
+
     fun getLessonsByLevel(level: PythonLevel?): List<PythonLesson> {
         return if (level == null) allLessons else allLessons.filter { it.level == level }
     }
@@ -74,7 +87,8 @@ class PythonCourseRepository(context: Context) {
         if (current.completedLessonIds.contains(lessonId)) return
 
         val lesson = getLessonById(lessonId)
-        val gainedXp = lesson?.xpReward ?: 50
+        val cyberLesson = getCyberLessonById(lessonId)
+        val gainedXp = lesson?.xpReward ?: cyberLesson?.xpReward ?: 60
         val newCompleted = current.completedLessonIds + lessonId
         val newXp = current.totalXp + gainedXp
 
@@ -142,7 +156,7 @@ class PythonCourseRepository(context: Context) {
     }
 
     fun getAllQuizQuestions(): List<QuizQuestion> {
-        return allLessons.flatMap { it.quiz }
+        return allLessons.flatMap { it.quiz } + allCyberLessons.flatMap { it.quiz }
     }
 
     fun getRandomQuizChallenge(count: Int = 10): List<QuizQuestion> {

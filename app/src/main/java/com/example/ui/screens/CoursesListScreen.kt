@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -256,6 +258,47 @@ fun CoursesListScreen(
                 onLessonClick = { viewModel.openLesson(lesson) },
                 onBookmarkClick = { viewModel.toggleBookmark(lesson.id) }
             )
+        }
+
+        item {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            Card(
+                colors = CardDefaults.cardColors(containerColor = IdeSurface),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFF25D366).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Besoin d'aide sur un cours Python ?",
+                            color = TextWhite,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Contactez Anos sur WhatsApp (+234 07071776576)",
+                            color = Color(0xFF25D366),
+                            fontSize = 11.5.sp
+                        )
+                    }
+
+                    Button(
+                        onClick = { viewModel.openWhatsAppContact(context) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("WhatsApp", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
         }
 
         item {
