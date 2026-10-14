@@ -7,8 +7,15 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.generator.CommandExplanation
+import com.example.data.generator.CommandLabEngine
+import com.example.data.generator.LabMission
+import com.example.data.generator.MalwareData
+import com.example.data.generator.TerminalLine
+import com.example.data.generator.TerminalLineType
 import com.example.data.model.CyberLesson
 import com.example.data.model.CyberLevel
+import com.example.data.model.MalwareTypeInfo
 import com.example.data.model.PythonCheatSheetItem
 import com.example.data.model.PythonLesson
 import com.example.data.model.PythonLevel
@@ -143,11 +150,6 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun openLesson(lesson: PythonLesson) {
-        if (!isLessonUnlocked(lesson)) {
-            val prevNumber = lesson.number - 1
-            _toastMessage.value = "🔒 Chapitre verrouillé ! Terminez d'abord le Cours #$prevNumber pour débloquer la suite."
-            return
-        }
         _selectedLesson.value = lesson
     }
 
@@ -161,7 +163,7 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
         val nextNumber = lesson.number + 1
         val nextLesson = allLessons.find { it.number == nextNumber }
         if (nextLesson != null) {
-            _toastMessage.value = "🎉 Cours #${lesson.number} validé ! Le Cours #$nextNumber est désormais débloqué ! 🔓"
+            _toastMessage.value = "🎉 Cours #${lesson.number} validé ! +${lesson.xpReward} XP gagnés ! ⭐"
         } else {
             _toastMessage.value = "🏆 Félicitations ! Vous avez complété tous les cours de Anos py !"
         }
@@ -177,15 +179,10 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun isCyberLessonUnlocked(lesson: CyberLesson): Boolean {
-        return userProgress.value.isCyberLessonUnlocked(lesson.number, allCyberLessons)
+        return true
     }
 
     fun openCyberLesson(lesson: CyberLesson) {
-        if (!isCyberLessonUnlocked(lesson)) {
-            val prevNumber = lesson.number - 1
-            _toastMessage.value = "🔒 Chapitre verrouillé ! Terminez d'abord le Cours #$prevNumber pour débloquer la suite."
-            return
-        }
         _selectedCyberLesson.value = lesson
     }
 
@@ -199,7 +196,7 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
         val nextNumber = lesson.number + 1
         val nextLesson = allCyberLessons.find { it.number == nextNumber }
         if (nextLesson != null) {
-            _toastMessage.value = "🎉 Cours Cyber #${lesson.number} validé ! Le Cours #$nextNumber est désormais débloqué ! 🔓"
+            _toastMessage.value = "🎉 Cours Cyber #${lesson.number} validé ! +${lesson.xpReward} XP gagnés ! 🛡️"
         } else {
             _toastMessage.value = "🛡️ Félicitations ! Vous avez complété tous les cours de Cybersécurité !"
         }
@@ -212,10 +209,6 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
 
     // Quiz Launchers
     fun startLessonQuiz(lesson: PythonLesson) {
-        if (!isLessonUnlocked(lesson)) {
-            _toastMessage.value = "🔒 Chapitre verrouillé ! Complétez le cours précédent d'abord."
-            return
-        }
         if (lesson.quiz.isEmpty()) {
             _toastMessage.value = "Aucun quiz disponible pour ce cours."
             return
@@ -232,10 +225,6 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun startCyberQuiz(lesson: CyberLesson) {
-        if (!isCyberLessonUnlocked(lesson)) {
-            _toastMessage.value = "🔒 Chapitre verrouillé ! Complétez le cours précédent d'abord."
-            return
-        }
         if (lesson.quiz.isEmpty()) {
             _toastMessage.value = "Aucun quiz disponible pour ce cours."
             return
@@ -419,6 +408,97 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    // ==========================================
+    // Command Lab & Malware State & Actions
+    // ==========================================
+    val labMissions: List<LabMission> = CommandLabEngine.missions
+    val quickLabCommands: List<String> = CommandLabEngine.quickCommands
+    val allMalwares: List<MalwareTypeInfo> = MalwareData.allMalwares
+
+    private val _commandLabLines = MutableStateFlow<List<TerminalLine>>(
+        listOf(
+            TerminalLine("=== LAB TERMINAL CYBERSÉCURITÉ - ANOS KALI LINUX ===", TerminalLineType.HEADER),
+            TerminalLine("Système d'émulation de commandes de Pentest & Forensics prêt.", TerminalLineType.INFO),
+            TerminalLine("Tapez 'help' pour la liste des commandes ou sélectionnez une mission ci-dessus.", TerminalLineType.STDOUT),
+            TerminalLine("Session ouverte sous root@anos-kali-lab:~#", TerminalLineType.SUCCESS)
+        )
+    )
+    val commandLabLines: StateFlow<List<TerminalLine>> = _commandLabLines.asStateFlow()
+
+    private val _commandLabInput = MutableStateFlow("")
+    val commandLabInput: StateFlow<String> = _commandLabInput.asStateFlow()
+
+    private val _activeLabMission = MutableStateFlow<LabMission?>(null)
+    val activeLabMission: StateFlow<LabMission?> = _activeLabMission.asStateFlow()
+
+    private val _lastCommandExplanation = MutableStateFlow<CommandExplanation?>(null)
+    val lastCommandExplanation: StateFlow<CommandExplanation?> = _lastCommandExplanation.asStateFlow()
+
+    private val _isCommandExecuting = MutableStateFlow(false)
+    val isCommandExecuting: StateFlow<Boolean> = _isCommandExecuting.asStateFlow()
+
+    private val _selectedMalware = MutableStateFlow<MalwareTypeInfo?>(null)
+    val selectedMalware: StateFlow<MalwareTypeInfo?> = _selectedMalware.asStateFlow()
+
+    fun selectMalware(malware: MalwareTypeInfo?) {
+        _selectedMalware.value = malware
+    }
+
+    fun setCommandLabInput(input: String) {
+        _commandLabInput.value = input
+    }
+
+    fun selectLabMission(mission: LabMission) {
+        _activeLabMission.value = mission
+        _commandLabInput.value = mission.suggestedCommand
+        _toastMessage.value = "🎯 Mission active sélectionnée : ${mission.badge}"
+    }
+
+    fun clearLabMission() {
+        _activeLabMission.value = null
+    }
+
+    fun clearTerminal() {
+        _commandLabLines.value = listOf(
+            TerminalLine("root@anos-kali-lab:~# clear", TerminalLineType.PROMPT),
+            TerminalLine("Terminal réinitialisé. Prêt pour une nouvelle commande.", TerminalLineType.INFO)
+        )
+        _lastCommandExplanation.value = null
+    }
+
+    fun executeLabCommand(customCmd: String? = null) {
+        val cmd = (customCmd ?: _commandLabInput.value).trim()
+        if (cmd.isEmpty()) return
+
+        _commandLabInput.value = ""
+        viewModelScope.launch {
+            _isCommandExecuting.value = true
+            delay(200)
+
+            if (cmd.lowercase() == "clear") {
+                clearTerminal()
+            } else {
+                val (newLines, explanation) = CommandLabEngine.execute(cmd)
+                _commandLabLines.value = _commandLabLines.value + newLines
+                _lastCommandExplanation.value = explanation
+
+                val currentMission = _activeLabMission.value
+                if (currentMission != null) {
+                    val targetPrefix = currentMission.suggestedCommand.split(" ")[0].lowercase()
+                    if (cmd.lowercase().startsWith(targetPrefix)) {
+                        _toastMessage.value = "🎉 Mission validée : ${currentMission.title} ! +${currentMission.rewardXp} XP 🚀"
+                        _activeLabMission.value = null
+                    } else {
+                        _toastMessage.value = "⚡ Commande '$cmd' exécutée avec succès."
+                    }
+                } else {
+                    _toastMessage.value = "⚡ Commande exécutée."
+                }
+            }
+            _isCommandExecuting.value = false
+        }
+    }
+
     fun clearToastMessage() {
         _toastMessage.value = null
     }
@@ -428,3 +508,4 @@ class PythonAppViewModel(application: Application) : AndroidViewModel(applicatio
         _toastMessage.value = "Progression réinitialisée à zéro."
     }
 }
+

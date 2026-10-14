@@ -38,3 +38,9 @@ val SyntaxNumber = Color(0xFFBD93F9)    // 42, 3.14
 val SyntaxFunction = Color(0xFF8BE9FD)  // print, len, range
 val SyntaxComment = Color(0xFF6272A4)   // # comments
 val SyntaxDecorator = Color(0xFFFFB86C) // @property, @dataclass
+
+// Cyber Security Brand Colors
+val CyberNeonBlue = Color(0xFF00E5FF)
+val CyberPurple = Color(0xFFA855F7)
+val CyberMagenta = Color(0xFFFF007F)
+

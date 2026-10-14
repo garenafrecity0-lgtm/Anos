@@ -49,6 +49,14 @@ enum class CyberLevel(
         iconEmoji = "🛡️",
         primaryColor = Color(0xFF10B981),
         order = 5
+    ),
+    MALWARE_THREATS(
+        title = "Niveau 6 : Malwares & Menaces Avancées",
+        badge = "MALWARES",
+        description = "Ransomwares, Trojans, Vers, Spywares, Rootkits, Botnets et analyse statique/dynamique.",
+        iconEmoji = "🦠",
+        primaryColor = Color(0xFFFF007F),
+        order = 6
     )
 }
 
@@ -63,4 +71,17 @@ data class CyberLesson(
     val summary: String,
     val sections: List<LessonSection>,
     val quiz: List<QuizQuestion>
+)
+
+data class MalwareTypeInfo(
+    val id: String,
+    val name: String,
+    val emoji: String,
+    val dangerLevel: String,
+    val primaryTarget: String,
+    val description: String,
+    val infectionVector: String,
+    val famousExamples: List<String>,
+    val detectionTechniques: String,
+    val defensiveRemediation: String
 )

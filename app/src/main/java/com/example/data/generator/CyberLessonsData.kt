@@ -680,6 +680,203 @@ On empile plusieurs couches protectrices :
                     explanation = "Le MFA exige une seconde preuve d'identité (code à usage unique, clé de sécurité), rendant un mot de passe volé inutile pour le pirate."
                 )
             )
+        ),
+
+        // =========================================================================
+        // LEÇON 11 : LES DIFFÉRENTS TYPES DE MALWARE & MENACES CYBER
+        // =========================================================================
+        CyberLesson(
+            id = "sec_11_malware_types",
+            number = 11,
+            title = "11. Les Différents Types de Malware & Menaces Cyber",
+            subtitle = "Ransomwares, Trojans, Vers, Spywares, Rootkits, Botnets et Malwares Fileless",
+            level = CyberLevel.MALWARE_THREATS,
+            durationMinutes = 15,
+            xpReward = 120,
+            summary = "Explorez l'arsenal des logiciels malveillants : comment ils fonctionnent, leurs vecteurs d'attaque dévastateurs et leurs différences fondamentales.",
+            sections = listOf(
+                LessonSection(
+                    title = "1. Qu'est-ce qu'un Malware et comment s'infiltre-t-il ?",
+                    content = """
+Un **Malware** (contraction de *Malicious Software* ou logiciel malveillant) est tout programme conçu pour nuire, exploiter, espionner ou rançonner un appareil ou un réseau.
+
+Les principaux vecteurs d'infection sont :
+• **Hameçonnage (Phishing / Spear-Phishing)** : 90% des infections débutent par un e-mail trompeur incitant à ouvrir une pièce jointe piégée (.zip, .xlsm, .iso).
+• **Failles logicielles non corrigées** : Exploitation de vulnérabilités connues (CVE) ou inconnues (0-Day) dans Windows, Linux, navigateurs ou serveurs VPN.
+• **Supports amovibles piégés** : Clés USB infectées laissées volontairement dans un parking (*USB Drop Attack*) ou clés Rubber Ducky simulant un clavier à haute vitesse.
+• **Attaques par chaîne logistique (Supply Chain)** : Piratage d'une mise à jour légitime d'un logiciel populaire (ex: affaire SolarWinds).
+                    """.trimIndent(),
+                    tip = "Ne branchez JAMAIS une clé USB inconnue trouvée par hasard sur votre machine de travail ou personnelle !"
+                ),
+                LessonSection(
+                    title = "2. La Classification des Familles de Malware",
+                    content = """
+Voici les 8 grandes familles de malwares que tout expert doit impérativement maîtriser :
+
+1. **Ransomwares (Rançongiciels)** :
+   Chiffre de manière irréversible tous les documents de la victime avec des clés AES+RSA et exige une rançon en cryptomonnaies (Bitcoin, Monero).
+   *Exemples majeurs :* WannaCry, LockBit, Conti, Ryuk.
+
+2. **Chevaux de Troie (Trojans & RAT)** :
+   Se dissimule sous l'apparence d'un utilitaire ou d'un crack de jeu inoffensif. Une fois lancé, il ouvre une porte dérobée (*Backdoor*) permettant à l'attaquant de contrôler l'ordinateur à distance.
+   *Exemples :* Emotet, DarkComet, AgentTesla.
+
+3. **Vers Informatiques (Worms)** :
+   100% autonomes ! Contrairement aux virus, ils n'ont pas besoin de programme hôte ni d'action humaine pour se propager. Ils scannent le réseau et infectent d'autres machines vulnérables à la vitesse de l'éclair.
+   *Exemples :* Stuxnet (sabotage nucléaire), ILOVEYOU, Conficker.
+
+4. **Spywares (Logiciels Espions) & Keyloggers** :
+   Espionnent la victime en toute discrétion : interception des frappes au clavier, capture d'écran, activation clandestine du micro et de la webcam.
+   *Exemple emblématique :* Pegasus (NSO Group).
+
+5. **Rootkits & Bootkits** :
+   S'installent au niveau le plus profond : dans le noyau de l'OS (Kernel Ring 0) ou dans le BIOS/UEFI. Ils falsifient les commandes système pour être complètement invisibles pour les antivirus normaux.
+
+6. **Botnets (Réseaux de Zombies)** :
+   Armées de centaines de milliers d'appareils infectés (serveurs, PC, caméras connectées IoT) contrôlés par un serveur C2 (*Command & Control*) pour saturer des sites par attaques DDoS massives.
+   *Exemple :* Mirai.
+
+7. **Malwares Fileless (Sans Fichier)** :
+   Résident uniquement en mémoire vive (RAM) et n'écrivent aucun fichier sur le disque dur. Ils détournent des outils légitimes (PowerShell, WMI) pour échapper aux analyses de signatures classiques.
+
+8. **Bombes Logiques (Logic Bombs)** :
+   Code dormant qui attend un événement ou une date précise pour se déclencher (ex: licenciement d'un employé) et effacer les serveurs.
+                    """.trimIndent()
+                ),
+                LessonSection(
+                    title = "3. La Règle d'Or de Défense Face aux Malwares",
+                    content = """
+Pour se prémunir efficacement contre les malwares modernes :
+• **Sauvegardes 3-2-1** : 3 copies, 2 supports différents, dont 1 copie HORS LIGNE (Air-gapped) non connectée au réseau.
+• **EDR (Endpoint Detection and Response)** : Remplace l'antivirus traditionnel en surveillant en direct le comportement anormal des processus en mémoire.
+• **Principe du Moindre Privilège** : Ne jamais exécuter ses sessions quotidiennes avec un compte administrateur/root.
+• **Mises à jour automatiques** : Corriger les failles avant qu'elles ne soient exploitées.
+                    """.trimIndent()
+                )
+            ),
+            quiz = listOf(
+                QuizQuestion(
+                    id = "q_sec_11_1",
+                    question = "Quelle est la caractéristique distinctive d'un Ver informatique (Worm) par rapport à un virus classique ?",
+                    codeSnippet = null,
+                    options = listOf(
+                        "Il ne fonctionne que sur les téléphones",
+                        "Il se propage de manière 100% autonome sur le réseau sans nécessiter d'intervention humaine ou de fichier hôte",
+                        "Il ne fait qu'afficher des publicités",
+                        "Il est écrit obligatoirement en HTML"
+                    ),
+                    correctIndex = 1,
+                    explanation = "Le ver informatique est autonome : il scanne et se propage d'ordinateur en ordinateur à travers le réseau sans avoir besoin qu'un utilisateur clique sur un exécutable."
+                ),
+                QuizQuestion(
+                    id = "q_sec_11_2",
+                    question = "Quel type de malware réside uniquement dans la mémoire vive (RAM) sans déposer de fichier binaire sur le disque dur ?",
+                    codeSnippet = null,
+                    options = listOf(
+                        "Malware Fileless (Sans Fichier)",
+                        "Macro Excel classique",
+                        "Logiciel Adware",
+                        "Script Batch"
+                    ),
+                    correctIndex = 0,
+                    explanation = "Le malware Fileless s'exécute directement en RAM (souvent via PowerShell ou injection mémoire) pour contourner les antivirus traditionnels basés sur les fichiers."
+                ),
+                QuizQuestion(
+                    id = "q_sec_11_3",
+                    question = "Pourquoi un Rootkit de niveau noyau (Kernel) est-il particulièrement dangereux ?",
+                    codeSnippet = null,
+                    options = listOf(
+                        "Il consomme toute la connexion 4G",
+                        "Il fonctionne au niveau Ring 0 et peut tromper le système d'exploitation et l'antivirus pour masquer sa présence",
+                        "Il est uniquement actif les week-ends",
+                        "Il ne cible que les imprimantes"
+                    ),
+                    correctIndex = 1,
+                    explanation = "Opérant au niveau noyau (Ring 0), le rootkit a les privilèges les plus élevés et peut intercepter les requêtes système pour effacer ses traces et rester invisible."
+                )
+            )
+        ),
+
+        // =========================================================================
+        // LEÇON 12 : ANALYSE & FORENSICS DE MALWARE (STATION LAB)
+        // =========================================================================
+        CyberLesson(
+            id = "sec_12_malware_analysis",
+            number = 12,
+            title = "12. Analyse & Forensics de Malwares",
+            subtitle = "Analyse statique, extraction de chaînes, calcul de hash SHA-256 et Sandbox",
+            level = CyberLevel.MALWARE_THREATS,
+            durationMinutes = 14,
+            xpReward = 130,
+            summary = "Apprenez les méthodologies d'analyse de binaires suspects : hachage cryptographique, examen de chaînes et environnements Sandbox.",
+            sections = listOf(
+                LessonSection(
+                    title = "1. Analyse Statique vs Analyse Dynamique",
+                    content = """
+Lorsqu'un analyste de sécurité découvre un fichier suspect, il dispose de deux grandes approches :
+
+• **Analyse Statique (Sans exécuter le fichier)** :
+  1. **Calcul du Hash (SHA-256)** : Donne l'empreinte numérique unique du fichier pour vérifier s'il est déjà référencé sur des bases mondiales de cybermenaces comme VirusTotal.
+     `sha256sum payload.exe`
+  2. **Extraction des chaînes de caractères (Strings)** : Recherche des URLs de serveurs de contrôle (C2), des adresses IP, des clés de registre ou des messages d'erreur laissés en clair dans le binaire.
+     `strings payload.exe | grep -iE "(http|https|cmd|powershell)"`
+  3. **Identification du type de fichier réel** : Vérifier que ce n'est pas un exécutable déguisé avec une fausse extension.
+     `file rapport_confidentiel.pdf`
+
+• **Analyse Dynamique (Dans un bac à sable / Sandbox isolée)** :
+  Exécution du malware dans une machine virtuelle totalement déconnectée du réseau d'entreprise (ex: Cuckoo Sandbox, Any.Run) pour filmer et enregistrer chaque modification de fichier, connexion réseau et appel système.
+                    """.trimIndent(),
+                    tip = "N'exécutez JAMAIS un binaire suspect directement sur votre machine hôte ! Utilisez toujours un environnement virtuel cloisonné (Sandbox)."
+                ),
+                LessonSection(
+                    title = "2. Les Règles YARA : L'Arme Secrète des Analystes",
+                    content = """
+Les **Règles YARA** sont considérées comme le 'couteau suisse' des chasseurs de malwares. Elles permettent de décrire des familles de malwares en combinant des motifs textuels ou hexadécimaux et des conditions logiques :
+
+```yara
+rule Detect_WannaCry_Pattern {
+    meta:
+        description = "Détection des signatures de WannaCry"
+        author = "Anos Cyber Defense"
+    strings:
+        ${'$'}url = "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com"
+        ${'$'}msg = "Ooops, your files have been encrypted!"
+    condition:
+        all of them
+}
+```
+                    """.trimIndent()
+                )
+            ),
+            quiz = listOf(
+                QuizQuestion(
+                    id = "q_sec_12_1",
+                    question = "Quelle commande Linux permet d'extraire le texte lisible et les URLs dissimulés dans un fichier binaire suspect ?",
+                    codeSnippet = null,
+                    options = listOf(
+                        "nmap -sV",
+                        "strings <nom_du_fichier>",
+                        "chmod 777",
+                        "rm -rf"
+                    ),
+                    correctIndex = 1,
+                    explanation = "La commande 'strings' extrait toutes les séquences de caractères imprimables d'un fichier binaire, révélant souvent des adresses IP, des noms de fichiers ou des clés."
+                ),
+                QuizQuestion(
+                    id = "q_sec_12_2",
+                    question = "Pourquoi calcule-t-on le hash SHA-256 d'un fichier suspect lors d'une analyse statique ?",
+                    codeSnippet = null,
+                    options = listOf(
+                        "Pour accélérer la vitesse de téléchargement",
+                        "Pour obtenir son empreinte numérique unique et la comparer aux bases de données mondiales de malwares (ex: VirusTotal)",
+                        "Pour effacer le disque dur",
+                        "Pour convertir le fichier en image PNG"
+                    ),
+                    correctIndex = 1,
+                    explanation = "Le hash SHA-256 génère une empreinte unique de 64 caractères hexadécimaux permettant d'identifier immédiatement un malware connu sans avoir à l'exécuter."
+                )
+            )
         )
     )
 }
+

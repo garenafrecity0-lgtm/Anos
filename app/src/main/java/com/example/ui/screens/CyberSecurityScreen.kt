@@ -21,13 +21,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,10 +43,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,8 +61,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.data.model.CyberLesson
 import com.example.data.model.CyberLevel
+import com.example.data.model.MalwareTypeInfo
 import com.example.ui.theme.IdeBackground
 import com.example.ui.theme.IdeBorder
 import com.example.ui.theme.IdeSurface
@@ -61,12 +72,11 @@ import com.example.ui.theme.IdeSurfaceVariant
 import com.example.ui.theme.PythonGold
 import com.example.ui.theme.SuccessEmerald
 import com.example.ui.theme.TextMutedGray
+import com.example.ui.theme.CyberMagenta
+import com.example.ui.theme.CyberNeonBlue
+import com.example.ui.theme.CyberPurple
 import com.example.ui.theme.TextWhite
 import com.example.ui.viewmodel.PythonAppViewModel
-
-val CyberNeonBlue = Color(0xFF00E5FF)
-val CyberPurple = Color(0xFFA855F7)
-val CyberRed = Color(0xFFFF5252)
 
 @Composable
 fun CyberSecurityScreen(
@@ -77,11 +87,20 @@ fun CyberSecurityScreen(
     val progress by viewModel.userProgress.collectAsState()
     val selectedLevel by viewModel.selectedCyberLevel.collectAsState()
     val searchQuery by viewModel.cyberSearchQuery.collectAsState()
+    val selectedMalware by viewModel.selectedMalware.collectAsState()
     val context = LocalContext.current
 
     val totalLessons = viewModel.allCyberLessons.size
     val completedCyberCount = progress.completedCyberCount(viewModel.allCyberLessons)
     val progressPercent = if (totalLessons > 0) completedCyberCount.toFloat() / totalLessons else 0f
+
+    // Detailed Malware Modal Dialog
+    selectedMalware?.let { malware ->
+        MalwareDetailDialog(
+            malware = malware,
+            onDismiss = { viewModel.selectMalware(null) }
+        )
+    }
 
     LazyColumn(
         modifier = modifier
@@ -131,7 +150,7 @@ fun CyberSecurityScreen(
                                 )
                             }
                             Text(
-                                text = "Hacking éthique, scans réseau, failles web & défense",
+                                text = "Hacking éthique, scans, failles web, malwares & défense",
                                 color = CyberNeonBlue,
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
@@ -170,16 +189,141 @@ fun CyberSecurityScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${(progressPercent * 100).toInt()}% du cursus Cyber maîtrisé",
+                            text = "${(progressPercent * 100).toInt()}% du cursus Cyber validé",
                             color = TextMutedGray,
                             fontSize = 11.sp
                         )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.LockOpen, contentDescription = null, tint = SuccessEmerald, modifier = Modifier.size(13.dp))
+                            Text(
+                                text = "Tous niveaux débloqués 🔓",
+                                color = SuccessEmerald,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Unlocked All Levels Notification Banner
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SuccessEmerald.copy(alpha = 0.12f))
+                    .border(1.dp, SuccessEmerald.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 9.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.LockOpen,
+                        contentDescription = null,
+                        tint = SuccessEmerald,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "Accès Libre : Aucun niveau n'est verrouillé. Progressez et explorez les cours et quiz selon vos envies !",
+                        color = TextWhite,
+                        fontSize = 11.5.sp,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+        }
+
+        // Section: Types de Malware & Menaces Cyber
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("🦠", fontSize = 16.sp)
                         Text(
-                            text = "Progression pas à pas 🔓",
-                            color = PythonGold,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
+                            text = "Les 10 Grands Types de Malware :",
+                            color = TextWhite,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold
                         )
+                    }
+
+                    Text(
+                        text = "Cliquez pour voir",
+                        color = CyberMagenta,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    viewModel.allMalwares.forEach { malware ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = IdeSurface),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .width(155.dp)
+                                .border(1.dp, CyberMagenta.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .clickable { viewModel.selectMalware(malware) }
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(malware.emoji, fontSize = 20.sp)
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(CyberMagenta.copy(alpha = 0.2f))
+                                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "INFO",
+                                            color = CyberMagenta,
+                                            fontSize = 8.5.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = malware.name,
+                                    color = TextWhite,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 2
+                                )
+
+                                Text(
+                                    text = malware.dangerLevel.split(" ")[0],
+                                    color = PythonGold,
+                                    fontSize = 9.5.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -192,7 +336,7 @@ fun CyberSecurityScreen(
                 onValueChange = { viewModel.setCyberSearchQuery(it) },
                 placeholder = {
                     Text(
-                        "Rechercher un concept (SQLi, Nmap, XSS, OSI...)",
+                        "Rechercher un concept (Malware, SQLi, Nmap, OSI...)",
                         color = TextMutedGray,
                         fontSize = 13.sp
                     )
@@ -256,14 +400,12 @@ fun CyberSecurityScreen(
 
         // List of Cyber Lessons
         items(lessons, key = { it.id }) { lesson ->
-            val isUnlocked = viewModel.isCyberLessonUnlocked(lesson)
             val isCompleted = progress.completedLessonIds.contains(lesson.id)
             val isBookmarked = progress.bookmarkedLessonIds.contains(lesson.id)
             val quizScore = progress.quizScores[lesson.id]
 
             CyberLessonCardItem(
                 lesson = lesson,
-                isUnlocked = isUnlocked,
                 isCompleted = isCompleted,
                 isBookmarked = isBookmarked,
                 quizScore = quizScore,
@@ -346,22 +488,16 @@ fun CyberFilterChipItem(
 @Composable
 fun CyberLessonCardItem(
     lesson: CyberLesson,
-    isUnlocked: Boolean,
     isCompleted: Boolean,
     isBookmarked: Boolean,
     quizScore: Int?,
     onLessonClick: () -> Unit,
     onBookmarkClick: () -> Unit
 ) {
-    val containerColor = if (isUnlocked) IdeSurface else IdeSurface.copy(alpha = 0.5f)
-    val borderColor = when {
-        isCompleted -> SuccessEmerald.copy(alpha = 0.6f)
-        isUnlocked -> CyberNeonBlue.copy(alpha = 0.4f)
-        else -> IdeBorder.copy(alpha = 0.3f)
-    }
+    val borderColor = if (isCompleted) SuccessEmerald.copy(alpha = 0.6f) else CyberNeonBlue.copy(alpha = 0.35f)
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = CardDefaults.cardColors(containerColor = IdeSurface),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -386,148 +522,283 @@ fun CyberLessonCardItem(
                             .size(28.dp)
                             .clip(CircleShape)
                             .background(
-                                when {
-                                    isCompleted -> SuccessEmerald.copy(alpha = 0.2f)
-                                    isUnlocked -> CyberNeonBlue.copy(alpha = 0.2f)
-                                    else -> IdeSurfaceVariant
-                                }
+                                if (isCompleted) SuccessEmerald.copy(alpha = 0.2f) else CyberNeonBlue.copy(alpha = 0.2f)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        when {
-                            isCompleted -> {
-                                Icon(Icons.Default.CheckCircle, contentDescription = "Complété", tint = SuccessEmerald, modifier = Modifier.size(18.dp))
-                            }
-                            isUnlocked -> {
-                                Text(
-                                    text = "${lesson.number}",
-                                    color = CyberNeonBlue,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                            }
-                            else -> {
-                                Icon(Icons.Default.Lock, contentDescription = "Verrouillé", tint = TextMutedGray, modifier = Modifier.size(14.dp))
-                            }
+                        if (isCompleted) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = "Complété", tint = SuccessEmerald, modifier = Modifier.size(18.dp))
+                        } else {
+                            Text(
+                                text = "${lesson.number}",
+                                color = CyberNeonBlue,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
                         }
                     }
 
-                    if (isUnlocked) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(lesson.level.primaryColor.copy(alpha = 0.2f))
-                                .border(1.dp, lesson.level.primaryColor.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "${lesson.level.iconEmoji} ${lesson.level.badge}",
-                                color = lesson.level.primaryColor,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(IdeSurfaceVariant)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "🔒 VERROUILLÉ",
-                                color = TextMutedGray,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(lesson.level.primaryColor.copy(alpha = 0.2f))
+                            .border(1.dp, lesson.level.primaryColor.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${lesson.level.iconEmoji} ${lesson.level.badge}",
+                            color = lesson.level.primaryColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(SuccessEmerald.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (isCompleted) "Validé ✅" else "Débloqué 🔓",
+                            color = SuccessEmerald,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isUnlocked) {
-                        IconButton(
-                            onClick = onBookmarkClick,
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
-                                contentDescription = "Favori",
-                                tint = if (isBookmarked) PythonGold else TextMutedGray,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
+                    IconButton(
+                        onClick = onBookmarkClick,
+                        modifier = Modifier.size(28.dp)
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Ouvrir",
-                            tint = TextMutedGray,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Verrouillé",
-                            tint = TextMutedGray.copy(alpha = 0.6f),
+                            imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
+                            contentDescription = "Favori",
+                            tint = if (isBookmarked) PythonGold else TextMutedGray,
                             modifier = Modifier.size(18.dp)
                         )
                     }
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Ouvrir",
+                        tint = TextMutedGray,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
             Text(
                 text = lesson.title,
-                color = if (isUnlocked) TextWhite else TextWhite.copy(alpha = 0.5f),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 20.sp
+                color = TextWhite,
+                fontSize = 14.5.sp,
+                fontWeight = FontWeight.Bold
             )
 
             Text(
-                text = if (isUnlocked) lesson.subtitle else "Terminez le Cours Cyber #${lesson.number - 1} pour débloquer ce chapitre.",
-                color = if (isUnlocked) TextMutedGray else Color(0xFFFFB74D),
+                text = lesson.subtitle,
+                color = TextMutedGray,
                 fontSize = 12.sp,
                 lineHeight = 16.sp
             )
 
-            if (isUnlocked) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "⏱️ ${lesson.durationMinutes} min",
+                        color = TextMutedGray,
+                        fontSize = 11.sp
+                    )
+                    Text(
+                        text = "⭐ +${lesson.xpReward} XP",
+                        color = PythonGold,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "❓ ${lesson.quiz.size} quiz",
+                        color = CyberNeonBlue,
+                        fontSize = 11.sp
+                    )
+                }
+
+                if (quizScore != null) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (quizScore >= 70) SuccessEmerald.copy(alpha = 0.2f) else Color(0xFFFF5252).copy(alpha = 0.2f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
                         Text(
-                            text = "⏱️ ${lesson.durationMinutes} min",
-                            color = TextMutedGray,
-                            fontSize = 11.sp
-                        )
-                        Text(
-                            text = "⚡ +${lesson.xpReward} XP",
-                            color = CyberNeonBlue,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
+                            text = "Score : $quizScore%",
+                            color = if (quizScore >= 70) SuccessEmerald else Color(0xFFFF5252),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+        }
+    }
+}
 
-                    quizScore?.let { score ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(SuccessEmerald.copy(alpha = 0.2f))
-                                .border(1.dp, SuccessEmerald.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
+@Composable
+fun MalwareDetailDialog(
+    malware: MalwareTypeInfo,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = IdeSurface,
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, CyberMagenta.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(18.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(malware.emoji, fontSize = 28.sp)
+                        Column {
                             Text(
-                                text = "Quiz : $score%",
-                                color = SuccessEmerald,
-                                fontSize = 10.sp,
+                                text = malware.name,
+                                color = TextWhite,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = malware.dangerLevel,
+                                color = Color(0xFFFF5252),
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = TextMutedGray)
+                    }
+                }
+
+                // Primary Target
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF261224))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = "🎯 Cible : ${malware.primaryTarget}",
+                        color = CyberMagenta,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                // Description
+                Text(
+                    text = "Description & Fonctionnement :",
+                    color = TextWhite,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = malware.description,
+                    color = TextMutedGray,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
+                )
+
+                // Infection Vector
+                Text(
+                    text = "Vecteurs d'Infection :",
+                    color = TextWhite,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = malware.infectionVector,
+                    color = TextMutedGray,
+                    fontSize = 11.5.sp,
+                    lineHeight = 16.sp
+                )
+
+                // Famous Historical Attacks
+                Text(
+                    text = "Exemples Historiques Marquants :",
+                    color = PythonGold,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    malware.famousExamples.forEach { ex ->
+                        Text(
+                            text = "• $ex",
+                            color = TextWhite.copy(alpha = 0.9f),
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
+
+                // Detection Techniques
+                Text(
+                    text = "Comment le Détecter :",
+                    color = CyberNeonBlue,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = malware.detectionTechniques,
+                    color = TextMutedGray,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp
+                )
+
+                // Defense and Remediation
+                Text(
+                    text = "Mesures Défensives & Neutralisation :",
+                    color = SuccessEmerald,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = malware.defensiveRemediation,
+                    color = TextMutedGray,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp
+                )
+
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("J'ai compris", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }

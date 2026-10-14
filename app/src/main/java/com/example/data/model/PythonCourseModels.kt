@@ -129,15 +129,13 @@ data class UserProgress(
     }
 
     fun isLessonUnlocked(lessonNumber: Int, allLessons: List<PythonLesson>): Boolean {
-        if (lessonNumber == 1) return true
-        val previousLesson = allLessons.find { it.number == lessonNumber - 1 }
-        return previousLesson != null && completedLessonIds.contains(previousLesson.id)
+        // Tous les niveaux sont débloqués pour un apprentissage libre et sans barrière
+        return true
     }
 
     fun isCyberLessonUnlocked(lessonNumber: Int, allCyberLessons: List<com.example.data.model.CyberLesson>): Boolean {
-        if (lessonNumber == 1) return true
-        val previousLesson = allCyberLessons.find { it.number == lessonNumber - 1 }
-        return previousLesson != null && completedLessonIds.contains(previousLesson.id)
+        // Tous les niveaux de cybersécurité sont débloqués
+        return true
     }
 
     fun completedPythonCount(allLessons: List<PythonLesson>): Int =

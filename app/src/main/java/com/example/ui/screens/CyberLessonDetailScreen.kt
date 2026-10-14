@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.CyberLesson
 import com.example.ui.components.CodeBlockView
+import com.example.ui.theme.CyberNeonBlue
 import com.example.ui.theme.ErrorCrimson
 import com.example.ui.theme.IdeBackground
 import com.example.ui.theme.IdeBorder

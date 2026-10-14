@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Search
@@ -164,6 +165,36 @@ fun CoursesListScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+        }
+
+        // Unlocked All Levels Banner
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SuccessEmerald.copy(alpha = 0.12f))
+                    .border(1.dp, SuccessEmerald.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 9.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.LockOpen,
+                        contentDescription = null,
+                        tint = SuccessEmerald,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "🔓 Tous les chapitres sont débloqués ! Vous êtes libre de commencer par n'importe quelle leçon ou niveau.",
+                        color = TextWhite,
+                        fontSize = 11.5.sp,
+                        lineHeight = 15.sp
+                    )
                 }
             }
         }
@@ -402,20 +433,21 @@ fun LessonCardItem(
 
                     if (isUnlocked) {
                         LevelBadge(level = lesson.level)
-                    } else {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(IdeSurfaceVariant)
+                                .background(SuccessEmerald.copy(alpha = 0.15f))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = "🔒 VERROUILLÉ",
-                                color = TextMutedGray,
-                                fontSize = 10.sp,
+                                text = if (isCompleted) "Validé ✅" else "Débloqué 🔓",
+                                color = SuccessEmerald,
+                                fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    } else {
+                        LevelBadge(level = lesson.level)
                     }
                 }
 
