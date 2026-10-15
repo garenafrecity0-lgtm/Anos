@@ -2,45 +2,34 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Brand Colors - Python Official Aesthetics
-val PythonBlue = Color(0xFF387EB8)
-val PythonBlueLight = Color(0xFF4B8BBE)
-val PythonBlueDark = Color(0xFF1E415E)
+// Anos Aura - Fiery Gaming & Esports Color Palette
+val AuraRed = Color(0xFFFF2A4B)          // Headshot Fiery Red
+val AuraRedDark = Color(0xFFC4122C)      // Deep Crimson
+val AuraFlameOrange = Color(0xFFFF6D00)  // Flame Orange
+val AuraGold = Color(0xFFFFC107)         // Esports Champion Gold
+val AuraGoldDark = Color(0xFFC79100)     // Dark Gold
+val AuraCyan = Color(0xFF00E5FF)         // High-tech Neon Cyan
 
-val PythonYellow = Color(0xFFFFE873)
-val PythonGold = Color(0xFFFFD438)
-val PythonGoldDark = Color(0xFFCCA01E)
+// Free Fire Hit Damage Indicators
+val HeadshotRed = Color(0xFFFF1744)      // Pure 100% Headshot Red
+val BodyHitYellow = Color(0xFFFFD600)    // Body Shot Yellow
+val ArmorHitWhite = Color(0xFFF0F4F8)    // Armor Hit White
 
-// Dark IDE Theme Backgrounds
-val IdeBackground = Color(0xFF0F141C)
-val IdeSurface = Color(0xFF161C26)
-val IdeSurfaceVariant = Color(0xFF1F2736)
-val IdeCardElevated = Color(0xFF263042)
-val IdeCodeBg = Color(0xFF0A0D14)
-val IdeBorder = Color(0xFF2E3A4E)
-
-// Status & Accent Colors
-val SuccessEmerald = Color(0xFF10B981)
-val ErrorCrimson = Color(0xFFEF4444)
-val WarningAmber = Color(0xFFF59E0B)
-val AccentCyan = Color(0xFF06B6D4)
-val AccentPurple = Color(0xFFA855F7)
+// Gaming Dark Theme Backgrounds & Surfaces
+val AuraBackground = Color(0xFF0B0D14)   // Carbon Dark Gaming Black
+val AuraSurface = Color(0xFF131722)      // Tactical Dark Surface
+val AuraSurfaceVariant = Color(0xFF1C2232)
+val AuraCardElevated = Color(0xFF232B3E)
+val AuraBorder = Color(0xFF2E3850)
+val AuraBorderActive = Color(0xFFFF3D00)
 
 // Text Colors
 val TextWhite = Color(0xFFF8FAFC)
 val TextMutedGray = Color(0xFF94A3B8)
 val TextDarkGray = Color(0xFF64748B)
 
-// Python Code Syntax Highlighting Colors
-val SyntaxKeyword = Color(0xFFFF79C6)   // def, return, if, class, async
-val SyntaxString = Color(0xFF50FA7B)    // "strings", 'chars'
-val SyntaxNumber = Color(0xFFBD93F9)    // 42, 3.14
-val SyntaxFunction = Color(0xFF8BE9FD)  // print, len, range
-val SyntaxComment = Color(0xFF6272A4)   // # comments
-val SyntaxDecorator = Color(0xFFFFB86C) // @property, @dataclass
-
-// Cyber Security Brand Colors
-val CyberNeonBlue = Color(0xFF00E5FF)
-val CyberPurple = Color(0xFFA855F7)
-val CyberMagenta = Color(0xFFFF007F)
-
+// Status & Indicators
+val SuccessGreen = Color(0xFF10B981)
+val SafeDpiColor = Color(0xFF10B981)
+val WarningDpiColor = Color(0xFFF59E0B)
+val DangerDpiColor = Color(0xFFEF4444)

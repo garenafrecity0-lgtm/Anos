@@ -15,22 +15,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Quiz
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Quiz
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.RadioButtonChecked
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -41,9 +38,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,46 +46,45 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.components.PythonTopBar
-import com.example.ui.screens.CheatSheetScreen
-import com.example.ui.screens.CoursesListScreen
-import com.example.ui.screens.CyberLessonDetailScreen
-import com.example.ui.screens.CyberSecurityScreen
-import com.example.ui.screens.LessonDetailScreen
-import com.example.ui.screens.PlaygroundScreen
-import com.example.ui.screens.ProfileScreen
-import com.example.ui.screens.QuizScreen
-import com.example.ui.theme.AnosPyTheme
-import com.example.ui.theme.IdeBackground
-import com.example.ui.theme.IdeBorder
-import com.example.ui.theme.IdeSurface
-import com.example.ui.theme.PythonGold
+import com.example.ui.components.AnosAuraTopBar
+import com.example.ui.screens.GuidesScreen
+import com.example.ui.screens.HudCalibrationScreen
+import com.example.ui.screens.SavedSensisScreen
+import com.example.ui.screens.SensiGeneratorScreen
+import com.example.ui.screens.WeaponsScreen
+import com.example.ui.theme.AnosAuraTheme
+import com.example.ui.theme.AuraBackground
+import com.example.ui.theme.AuraBorder
+import com.example.ui.theme.AuraGold
+import com.example.ui.theme.AuraRed
+import com.example.ui.theme.AuraSurface
 import com.example.ui.theme.TextMutedGray
-import com.example.ui.viewmodel.PythonAppViewModel
+import com.example.ui.viewmodel.AnosAuraViewModel
 
-enum class AnosPyNavTab(
+enum class AnosAuraTab(
     val title: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
     val testTag: String
 ) {
-    COURSES("Python", Icons.Filled.Code, Icons.Outlined.Code, "tab_courses"),
-    CYBER("Cyber 🛡️", Icons.Filled.Security, Icons.Outlined.Security, "tab_cyber"),
-    QUIZZES("Quizz", Icons.Filled.Quiz, Icons.Outlined.Quiz, "tab_quizzes"),
-    PLAYGROUND("Console", Icons.Filled.Terminal, Icons.Outlined.Terminal, "tab_playground"),
-    PROFILE("Profil", Icons.Filled.Person, Icons.Outlined.Person, "tab_profile")
+    GENERATOR("Sensi 0-200", Icons.Filled.FlashOn, Icons.Outlined.FlashOn, "tab_generator"),
+    HUD("Bouton & HUD", Icons.Filled.RadioButtonChecked, Icons.Outlined.RadioButtonUnchecked, "tab_hud"),
+    WEAPONS("Armes FF", Icons.Filled.LocalFireDepartment, Icons.Outlined.LocalFireDepartment, "tab_weapons"),
+    GUIDES("Guides Pro", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook, "tab_guides"),
+    SAVED("Mes Sensis", Icons.Filled.Star, Icons.Outlined.Star, "tab_saved")
 }
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: PythonAppViewModel by viewModels()
+    private val viewModel: AnosAuraViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AnosPyTheme {
+            AnosAuraTheme {
                 val context = LocalContext.current
                 val toastMessage by viewModel.toastMessage.collectAsState()
+                val selectedTab by viewModel.selectedTab.collectAsState()
 
                 LaunchedEffect(toastMessage) {
                     toastMessage?.let {
@@ -100,116 +93,75 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                MainAnosPyApp(viewModel = viewModel)
-            }
-        }
-    }
-}
-
-@Composable
-fun MainAnosPyApp(viewModel: PythonAppViewModel) {
-    val context = LocalContext.current
-    var selectedTab by rememberSaveable { mutableStateOf(AnosPyNavTab.COURSES) }
-    val progress by viewModel.userProgress.collectAsState()
-    val isQuizActive by viewModel.isQuizActive.collectAsState()
-    val selectedLesson by viewModel.selectedLesson.collectAsState()
-    val selectedCyberLesson by viewModel.selectedCyberLesson.collectAsState()
-
-    val isFullScreen = isQuizActive || selectedLesson != null || selectedCyberLesson != null
-
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(IdeBackground),
-        containerColor = IdeBackground,
-        topBar = {
-            PythonTopBar(
-                progress = progress,
-                onWhatsAppClick = { viewModel.openWhatsAppContact(context) }
-            )
-        },
-        bottomBar = {
-            // Only show bottom navigation when not viewing a lesson or active quiz
-            if (!isFullScreen) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
-                ) {
-                    NavigationBar(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(IdeSurface)
-                            .border(1.dp, IdeBorder, RoundedCornerShape(20.dp)),
-                        containerColor = IdeSurface,
-                        tonalElevation = 0.dp
-                    ) {
-                        AnosPyNavTab.entries.forEach { tab ->
-                            val isSelected = selectedTab == tab
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { selectedTab = tab },
-                                icon = {
-                                    Icon(
-                                        imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                        contentDescription = tab.title,
-                                        modifier = Modifier.size(20.dp)
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = AuraBackground,
+                    topBar = {
+                        AnosAuraTopBar(viewModel = viewModel)
+                    },
+                    bottomBar = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(AuraBackground)
+                                .windowInsetsPadding(WindowInsets.navigationBars)
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                        ) {
+                            NavigationBar(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .border(1.dp, AuraBorder, RoundedCornerShape(20.dp)),
+                                containerColor = AuraSurface,
+                                tonalElevation = 4.dp
+                            ) {
+                                AnosAuraTab.entries.forEachIndexed { index, tab ->
+                                    val isSelected = selectedTab == index
+                                    NavigationBarItem(
+                                        selected = isSelected,
+                                        onClick = { viewModel.selectTab(index) },
+                                        icon = {
+                                            Icon(
+                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                                contentDescription = tab.title,
+                                                tint = if (isSelected) AuraRed else TextMutedGray
+                                            )
+                                        },
+                                        label = {
+                                            Text(
+                                                text = tab.title,
+                                                fontSize = 9.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) AuraGold else TextMutedGray,
+                                                maxLines = 1
+                                            )
+                                        },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = AuraRed.copy(alpha = 0.15f)
+                                        ),
+                                        modifier = Modifier.testTag(tab.testTag)
                                     )
-                                },
-                                label = {
-                                    Text(
-                                        text = tab.title,
-                                        fontSize = 9.5.sp,
-                                        maxLines = 1,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = PythonGold,
-                                    selectedTextColor = PythonGold,
-                                    unselectedIconColor = TextMutedGray,
-                                    unselectedTextColor = TextMutedGray,
-                                    indicatorColor = PythonGold.copy(alpha = 0.15f)
-                                ),
-                                modifier = Modifier.testTag(tab.testTag)
-                            )
+                                }
+                            }
                         }
                     }
-                }
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when {
-                isQuizActive -> {
-                    QuizScreen(viewModel = viewModel)
-                }
-                selectedLesson != null -> {
-                    LessonDetailScreen(
-                        lesson = selectedLesson!!,
-                        viewModel = viewModel
-                    )
-                }
-                selectedCyberLesson != null -> {
-                    CyberLessonDetailScreen(
-                        lesson = selectedCyberLesson!!,
-                        viewModel = viewModel
-                    )
-                }
-                else -> {
-                    Crossfade(targetState = selectedTab, label = "tabScreenTransition") { tab ->
-                        when (tab) {
-                            AnosPyNavTab.COURSES -> CoursesListScreen(viewModel = viewModel)
-                            AnosPyNavTab.CYBER -> CyberSecurityScreen(viewModel = viewModel)
-                            AnosPyNavTab.QUIZZES -> QuizScreen(viewModel = viewModel)
-                            AnosPyNavTab.PLAYGROUND -> PlaygroundScreen(viewModel = viewModel)
-                            AnosPyNavTab.PROFILE -> ProfileScreen(viewModel = viewModel)
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+                        Crossfade(
+                            targetState = selectedTab,
+                            label = "tab_navigation"
+                        ) { tabIndex ->
+                            when (tabIndex) {
+                                0 -> SensiGeneratorScreen(viewModel = viewModel)
+                                1 -> HudCalibrationScreen(viewModel = viewModel)
+                                2 -> WeaponsScreen(viewModel = viewModel)
+                                3 -> GuidesScreen(viewModel = viewModel)
+                                4 -> SavedSensisScreen(viewModel = viewModel)
+                            }
                         }
                     }
                 }

@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Anos py"
+rootProject.name = "Anos Aura"
 
 include(":app")

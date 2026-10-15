@@ -5,35 +5,35 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val PythonDarkColorScheme = darkColorScheme(
-    primary = PythonGold,
-    onPrimary = Color.Black,
-    primaryContainer = PythonBlueDark,
-    onPrimaryContainer = PythonYellow,
-    secondary = PythonBlue,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFF132A3E),
-    onSecondaryContainer = PythonBlueLight,
-    tertiary = SuccessEmerald,
+private val AnosAuraColorScheme = darkColorScheme(
+    primary = AuraRed,
+    onPrimary = Color.White,
+    primaryContainer = AuraRedDark,
+    onPrimaryContainer = AuraGold,
+    secondary = AuraFlameOrange,
+    onSecondary = Color.Black,
+    secondaryContainer = AuraSurfaceVariant,
+    onSecondaryContainer = AuraGold,
+    tertiary = AuraCyan,
     onTertiary = Color.Black,
-    background = IdeBackground,
+    background = AuraBackground,
     onBackground = TextWhite,
-    surface = IdeSurface,
+    surface = AuraSurface,
     onSurface = TextWhite,
-    surfaceVariant = IdeSurfaceVariant,
+    surfaceVariant = AuraSurfaceVariant,
     onSurfaceVariant = TextMutedGray,
-    outline = IdeBorder,
-    outlineVariant = PythonBlue.copy(alpha = 0.4f),
-    error = ErrorCrimson,
+    outline = AuraBorder,
+    outlineVariant = AuraRed.copy(alpha = 0.5f),
+    error = HeadshotRed,
     onError = Color.White
 )
 
 @Composable
-fun AnosPyTheme(
+fun AnosAuraTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = PythonDarkColorScheme,
+        colorScheme = AnosAuraColorScheme,
         typography = Typography,
         content = content
     )
